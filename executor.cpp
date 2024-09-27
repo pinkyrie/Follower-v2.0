@@ -66,7 +66,9 @@ void Executor::openFile(const QString& filename, const QString& parameter, int n
     int pos = filename.lastIndexOf('\\');
     QString dirPath = filename.left(pos); //缺省目录，防止找不到缺省文件//if pos == -1 return entire string
     qDebug() << "#run:" << filename << parameter;
-    ShellExecuteW(0, L"open", filename.toStdWString().c_str(), parameter.toStdWString().c_str(), dirPath.toStdWString().c_str(), nShowMode);
+    // The default verb is used, if available. If not, the "open" verb is used. If neither verb is available, the system uses the first verb listed in the registry.
+    ShellExecuteW(0, NULL, filename.toStdWString().c_str(), parameter.toStdWString().c_str(), dirPath.toStdWString().c_str(), nShowMode);
+    // 对于.lnk，如果使用"open"，则会在控制台输出很多shell信息，造成卡顿
     //宽字符(Unicode)才能完美转换，否则可能编码错误
     //神奇现象：ShellExecute会新开线程，不返回虽然阻塞 但是事件循环继续进行
 }

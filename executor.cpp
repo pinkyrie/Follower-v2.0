@@ -172,8 +172,8 @@ void Executor::updateAppsFolderCmdList()
         QList<Command> list;
         auto apps = Win::getAppList();
         for (const auto& app : apps) {
-            auto [name, path, args] = app;
-            list.append({name, "", path, args});
+            auto [name, path] = app;
+            list.append({name, "", path, ""});
         }
         emit updateAppList(list);
     });

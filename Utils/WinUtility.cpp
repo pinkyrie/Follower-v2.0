@@ -15,6 +15,7 @@
 #include <atlbase.h>
 #include <ShlObj.h>
 #include <propvarutil.h>
+#include <QDirIterator>
 
 void Win::setAlwaysTop(HWND hwnd, bool isTop)
 {
@@ -652,13 +653,44 @@ QList<QPair<QString, QString>> Win::getUWPList()
 }
 
 // name path args
-QList<std::tuple<QString, QString, QString>> Win::getAppList()
+QList<std::tuple<QString, QString>> Win::getAppList()
 {
-    QList<std::tuple<QString, QString, QString>> appList;
-    auto uwpList = getUWPList();
-    for (const auto& [name, path] : uwpList) {
-        appList << std::make_tuple(name, path, "");
+    QList<std::tuple<QString, QString>> appList;
+
+    static auto getApps = [](const QString& path) -> QList<QPair<QString, QString>> {
+        qDebug() << "Searching in:" << path;
+        QList<QPair<QString, QString>> apps;
+        // QDir::System: on Windows, .lnk files are included, 不加的话某些.lnk扫不出来，例如桌面上的DeepL
+        QDirIterator it(path, QStringList() << "*.lnk" << "*.url", QDir::System | QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
+        while (it.hasNext())
+            apps << qMakePair(it.fileInfo().completeBaseName(), it.next());
+        return apps;
+    };
+
+    auto list = getUWPList();
+
+    decltype(list) linkList;
+    linkList << getApps(getKnownFolderPath(CSIDL_COMMON_PROGRAMS));
+    linkList << getApps(getKnownFolderPath(CSIDL_PROGRAMS));
+    linkList << getApps(getKnownFolderPath(CSIDL_DESKTOP));
+
+    // 去重
+    QSet<QPair<QString, QString>> name_target_set;
+    for (auto& link: linkList) {
+        // TODO: 这里.symLinkTarget()获取得不太精准，桌面上的DeepL.lnk的target返回空，建议使用COM接口获取
+        auto pair = qMakePair(link.first, QFileInfo(link.second).symLinkTarget());
+        if (name_target_set.contains(pair)) {
+            // qDebug() << "Skip duplicate link:" << link;
+            continue;
+        }
+        name_target_set.insert(pair);
+        list << link;
     }
+
+    for (const auto& [name, path] : qAsConst(list))
+        appList << std::make_tuple(name, path);
+
+
     return appList;
 }
 

@@ -49,7 +49,7 @@ public:
     static QString GUID2Path(const QString& guid);
     static QString getUWPInstallDirByAUMID(const QString& AUMID);
     static QList<QPair<QString, QString>> getUWPList(void);
-    static QList<std::tuple<QString, QString, QString>> getAppList(void);
+    static QList<std::tuple<QString, QString>> getAppList(void);
     static QString getKnownFolderPath(int csidl);
 
     // C++17 inline

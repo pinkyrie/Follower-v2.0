@@ -79,8 +79,10 @@ QString Win::getProcessExePath(HWND hwnd)
         return "";
 
     HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, processId);
-    if (hProcess == NULL)
+    if (hProcess == NULL) { // 游戏客户端和加速器可能做了保护，导致无法获取
+        qDebug() << "#OpenProcess failed:" << GetLastError();
         return "";
+    }
 
     TCHAR processName[MAX_PATH] = TEXT("<unknown>");
     // https://www.cnblogs.com/mooooonlight/p/14491399.html

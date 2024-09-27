@@ -20,7 +20,8 @@ Sniper::~Sniper()
 
 QString Sniper::getWindowPathUnderCursor()
 {
-    HWND hwnd = Win::windowFromPoint(QCursor::pos());
+    // HWND hwnd = Win::windowFromPoint(QCursor::pos());
+    HWND hwnd = Win::topWinFromPoint(QCursor::pos());
     // this->winId(); // 该函数调用会导致自身以及父窗口分裂为一个native窗口（可被Spy++检测），导致mouseMove行为中断，mouseRelease不触发
     if (hwnd == (HWND)this->nativeParentWidget()->winId()) return QString();
 

@@ -97,7 +97,7 @@ Widget::Widget(QWidget* parent)
         SwitchToThisWindow(Hwnd, true);
     });
     connect(lineEdit, &CodeEditor::returnWithoutEcho, this, [=](bool noHide) {
-        setState(STILL, 2);
+        setState(STILL, 5); // as fast as possible, or we may affect the Focus（启动的窗口可能不会正确获取焦点）
         if (isHideAfterExecute && !noHide) minimize(); //autoHide
     }); //命令执行后自动回复
 

@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <QMessageBox>
 #include "Utils/util.h"
+#include <Utils/WinUtility.h>
 
 Executor::Executor(QObject* parent)
     : QObject(parent)
@@ -57,7 +58,7 @@ void Executor::openFile(const QString& filename, const QString& parameter, int n
     if (filename == "") return; //""代表本工作目录
     int pos = filename.lastIndexOf('\\');
     QString dirPath = filename.left(pos); //缺省目录，防止找不到缺省文件//if pos == -1 return entire string
-    //ShellExecuteA(0, "open", filename.toLocal8Bit().constData(), parameter.toLocal8Bit().constData(), dirPath.toLocal8Bit().constData(), nShowMode);
+    qDebug() << "#run:" << filename << parameter;
     ShellExecuteW(0, L"open", filename.toStdWString().c_str(), parameter.toStdWString().c_str(), dirPath.toStdWString().c_str(), nShowMode);
     //宽字符(Unicode)才能完美转换，否则可能编码错误
     //神奇现象：ShellExecute会新开线程，不返回虽然阻塞 但是事件循环继续进行
@@ -156,6 +157,18 @@ bool Executor::isExistPath(const QString& str)
     return QFileInfo::exists(_str) && isAbsolutePath(_str); //增加绝对路径判断，否则可能查询系统目录（如 Windows\System32 (\ja)）
 }
 
+QList<Command> appsFolderCmdList()
+{
+    QList<Command> list;
+    static auto apps = Win::getAppsFolderList();
+    for (const auto& app : apps) {
+        auto [name, path, args] = app;
+        list.append({name, "", path, args});
+        // qDebug() << name << path;
+    }
+    return list;
+}
+
 Executor::State Executor::run(const QString& code, bool isWithExtra)
 {
     clearText();
@@ -179,6 +192,10 @@ Executor::State Executor::run(const QString& code, bool isWithExtra)
         return NOCODE;
     }
 
+    auto apps = appsFolderCmdList();
+    auto iter_app = std::find_if(apps.begin(), apps.end(), [=](const Command& cmd) {
+        return isMatch(cmd.code, code);
+    });
     auto iter = std::find_if(cmdList.begin(), cmdList.end(), [=](const Command& cmd) { //模糊匹配
         QString sor = cmd.code;
         if (isWithExtra) sor += cmd.extra; //加上extra匹配
@@ -189,13 +206,19 @@ Executor::State Executor::run(const QString& code, bool isWithExtra)
     });
 
     bool isFind = (iter != cmdList.end());
+    bool isFind_app = (iter_app != apps.end());
     bool isFind_inner = (iter_inner != innerCmdList.end());
 
     if (isFind) {
         Command cmd = *iter;
         openFile(cmd.filename, cmd.parameter);
-        runTimesMap[cmd.filename + cmd.parameter]++; //统计运行次数，filename+param作为唯一标识
+        // runTimesMap[cmd.filename + cmd.parameter]++; //统计运行次数，filename+param作为唯一标识
         //qDebug() << runTimesMap;
+        return CODE;
+    } else if (isFind_app) {
+        Command cmd = *iter_app;
+        openFile(cmd.filename, cmd.parameter);
+        // runTimesMap[cmd.filename + cmd.parameter]++;
         return CODE;
     } else if (isFind_inner) {
         InnerCommand cmd = *iter_inner;
@@ -239,19 +262,27 @@ QList<QPair<QString, QString>> Executor::matchString(const QString& str, State* 
             list << qMakePair(cmd.code + cmd.extra, cmd.filename);
             codeFile[cmd.code + cmd.extra + cmd.filename] = cmd; //indexing
         }
+
+    auto apps = appsFolderCmdList();
+    for (const Command& cmd : apps)
+        if (isMatch(cmd.code, str, cs)) {
+            list << qMakePair(cmd.code + cmd.extra, cmd.filename);
+            codeFile[cmd.code + cmd.extra + cmd.filename] = cmd;
+        }
+
     //无需去重 可能出现同名不同path等 让用户选择
-    if (!list.empty()) {
-        std::sort(list.begin(), list.end(), [=, &codeFile](const QPair<QString, QString>& a, const QPair<QString, QString>& b) -> bool {
-            const Command& ca = codeFile[a.first + a.second];
-            const Command& cb = codeFile[b.first + b.second];
-            if (ca.code.compare(str, cs) == 0) //全匹配优先级最高
-                return true;
-            else if (cb.code.compare(str, cs) == 0)
-                return false;
-            else //降序
-                return runTimesMap.value(ca.filename + ca.parameter) > runTimesMap.value(cb.filename + cb.parameter);
-        });
-    }
+    // if (!list.empty()) {
+    //     std::sort(list.begin(), list.end(), [=, &codeFile](const QPair<QString, QString>& a, const QPair<QString, QString>& b) -> bool {
+    //         const Command& ca = codeFile[a.first + a.second];
+    //         const Command& cb = codeFile[b.first + b.second];
+    //         if (ca.code.compare(str, cs) == 0) //全匹配优先级最高
+    //             return true;
+    //         else if (cb.code.compare(str, cs) == 0)
+    //             return false;
+    //         else //降序
+    //             return runTimesMap.value(ca.filename + ca.parameter) > runTimesMap.value(cb.filename + cb.parameter);
+    //     });
+    // }
 
     QSet<QString> codeSet;
     for (const InnerCommand& cmd : qAsConst(innerCmdList))

@@ -1,12 +1,20 @@
 #include "WinUtility.h"
 #include <QMessageBox>
 #include <cstring>
+#include <propkey.h>
 #include <psapi.h>
 #include <QScreen>
 #include <QApplication>
 #include <QSettings>
 #include <QDir>
 #include <QProcess>
+#include <QDomDocument>
+#include <QIcon>
+#include <shlobj_core.h>
+#include <appmodel.h>
+#include <atlbase.h>
+#include <ShlObj.h>
+#include <propvarutil.h>
 
 void Win::setAlwaysTop(HWND hwnd, bool isTop)
 {
@@ -321,4 +329,275 @@ bool Win::testGlobalCursorShape(LPCWSTR cursorID)
     // LoadCursor [arg0:NULL] 意为加载预定义的系统游标
     // 原理：仅当游标资源尚未加载时，LoadCursor 函数才会加载游标资源; 否则，它将检索现有资源的句柄
     return info.hCursor == LoadCursor(NULL, cursorID);
+}
+
+// AUMID(App User Model Id): e.g. `Microsoft.WindowsSoundRecorder_8wekyb3d8bbwe!App`
+QString Win::getUWPNameFromAUMID(const QString& AUMID)
+{
+    QString str = AUMID.split('!')[0];
+    auto underscore = str.lastIndexOf('_');
+    if (underscore == -1) return str;
+    return str.left(underscore);
+}
+
+// 普通API很难获取UWP的图标，遂手动解析AppxManifest.xml
+// ref: https://github.com/microsoft/PowerToys/blob/5b616c9eed776566e728ee6dd710eb706e73e300/src/modules/launcher/Plugins/Microsoft.Plugin.Program/Programs/UWPApplication.cs#L394
+// 函数名：LogoUriFromManifest 说明是从AppxManifest.xml中获取Logo路径
+// ref: https://learn.microsoft.com/zh-cn/windows/uwp/app-resources/images-tailored-for-scale-theme-contrast
+// ref: https://stackoverflow.com/questions/39910625/how-to-properly-structure-uwp-app-icons-in-appxmanifest-xml-file-for-a-win32-app
+QString Win::getLogoPathFromAppxManifest(const QString& manifestPath)
+{
+    QFile file(manifestPath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "无法打开AppxManifest.xml文件" << manifestPath;
+        return QString();
+    }
+
+    QDomDocument doc;
+    if (!doc.setContent(&file)) {
+        file.close();
+        qDebug() << "无法解析XML文件";
+        return QString();
+    }
+    file.close();
+
+    QDomElement root = doc.documentElement();
+    QDomElement properties = root.firstChildElement("Properties");
+    QDomElement logo = properties.firstChildElement("Logo");
+
+    if (!logo.isNull()) {
+        return logo.text();
+    }
+
+    return QString();
+}
+
+// 匹配某个变体，如：StoreLogo.scale-200.png
+QIcon Win::loadUWPLogo(const QString& logoPath)
+{
+    QFileInfo fileInfo(logoPath);
+    QDir dir = fileInfo.absoluteDir();
+    QString wildcard = fileInfo.baseName() + "*." + fileInfo.suffix();
+
+    if (!dir.exists()) {
+        qDebug() << "Directory does not exist!";
+        return QIcon();
+    }
+
+    QStringList filters;
+    filters << wildcard; // 例如 "StoreLogo*.png"
+
+    QStringList matchingFiles = dir.entryList(filters, QDir::Files);
+
+    if (!matchingFiles.isEmpty()) {
+        QString logoFile = dir.absoluteFilePath(matchingFiles.first());
+        return QIcon(logoFile);
+    } else {
+        qWarning() << "No matching files found!";
+    }
+    return QIcon();
+}
+
+// "{1AC14E77-02E7-4E5D-B744-2EB1AE5198B7}" to "C:\Windows\System32"
+QString Win::GUID2Path(const QString& guid)
+{
+    GUID folderID;
+    if (CLSIDFromString(guid.toStdWString().c_str(), &folderID) != NOERROR) {
+        qWarning() << "Failed to convert GUID to CLSID.";
+        return "";
+    }
+
+    PWSTR path = nullptr;
+    HRESULT hr = SHGetKnownFolderPath(folderID, 0, nullptr, &path);
+
+    QString folderPath;
+    if (SUCCEEDED(hr)) {
+        folderPath = QString::fromWCharArray(path);
+    } else
+        qWarning() << "Failed to get known folder path from:" << guid;
+    CoTaskMemFree(path);
+
+    return folderPath;
+}
+
+// 用于比较包版本的辅助函数
+bool comparePackageFullNames(const wchar_t* a, const wchar_t* b) {
+    PACKAGE_VERSION versionA, versionB;
+    UINT32 lengthA = 0, lengthB = 0;
+
+    // Get appropriate length
+    if (SUCCEEDED(PackageIdFromFullName(a, PACKAGE_INFORMATION_BASIC, &lengthA, nullptr)) &&
+        SUCCEEDED(PackageIdFromFullName(b, PACKAGE_INFORMATION_BASIC, &lengthB, nullptr))) {
+        std::vector<BYTE> bufferA(lengthA), bufferB(lengthB);
+        PACKAGE_ID* idA = reinterpret_cast<PACKAGE_ID*>(bufferA.data());
+        PACKAGE_ID* idB = reinterpret_cast<PACKAGE_ID*>(bufferB.data());
+
+        if (SUCCEEDED(PackageIdFromFullName(a, PACKAGE_INFORMATION_BASIC, &lengthA, bufferA.data())) &&
+            SUCCEEDED(PackageIdFromFullName(b, PACKAGE_INFORMATION_BASIC, &lengthB, bufferB.data()))) {
+            versionA = idA->version;
+            versionB = idB->version;
+
+            if (versionA.Major != versionB.Major) return versionA.Major > versionB.Major;
+            if (versionA.Minor != versionB.Minor) return versionA.Minor > versionB.Minor;
+            if (versionA.Build != versionB.Build) return versionA.Build > versionB.Build;
+            return versionA.Revision > versionB.Revision;
+        }
+    }
+
+    // 如果无法比较版本，则按字符串比较
+    return wcscmp(a, b) > 0;
+}
+
+QString parsePackageFamilyName(const QString& AUMID)
+{
+    auto aumid = AUMID.toStdWString();
+    UINT32 pfnLength = 0;
+    UINT32 praidLength = 0;
+
+    // 第一次调用获取需要的缓冲区大小
+    LONG result = ParseApplicationUserModelId(aumid.c_str(), &pfnLength, nullptr, &praidLength, nullptr);
+
+    QString packageFamilyName;
+    if (result == ERROR_INSUFFICIENT_BUFFER) {
+        wchar_t* _packageFamilyName = new wchar_t[pfnLength];
+        wchar_t* _packageRelativeApplicationId = new wchar_t[praidLength];
+
+        // 再次调用以填充缓冲区
+        result = ParseApplicationUserModelId(aumid.c_str(), &pfnLength, _packageFamilyName, &praidLength, _packageRelativeApplicationId);
+
+        if (result == ERROR_SUCCESS) {
+            packageFamilyName = QString::fromWCharArray(_packageFamilyName);
+        } else {
+            qWarning() << "Error parsing AUMID: " << result;
+        }
+
+        delete[] _packageFamilyName;
+        delete[] _packageRelativeApplicationId;
+    } else {
+        qWarning() << "Error getting buffer size: " << result;
+    }
+
+    return packageFamilyName;
+}
+
+// ref: https://www.cnblogs.com/xyycare/p/18265865/cpp-get-msix-lnk-location
+QString Win::getUWPInstallDirByAUMID(const QString& AUMID)
+{
+    // 1. PackageManager (C++/WinRT) 的方法崩溃（可能需要管理员权限），遂弃之
+    // 2. PowerShell + Get-AppxPackage 的方法不需要管理员权限，但速度较慢
+    // "Get-AppxPackage -Name '%1' | Select-Object -ExpandProperty InstallLocation"
+
+    QString installPath;
+    // 不包含版本号
+    // QString packageFamilyName = AUMID.split('!').first();
+    QString packageFamilyName = parsePackageFamilyName(AUMID);
+
+    UINT32 count = 0;
+    UINT32 bufferLength = 0;
+    // 先获取包的数量和缓冲区大小
+    LONG result = GetPackagesByPackageFamily(packageFamilyName.toStdWString().c_str(), &count, nullptr, &bufferLength, nullptr);
+    if (result == ERROR_INSUFFICIENT_BUFFER) {
+        std::vector<PWSTR> fullNames(count);
+        std::vector<wchar_t> buffer(bufferLength);
+        // 获取包的全名（包含版本号 + 开发商）
+        result = GetPackagesByPackageFamily(packageFamilyName.toStdWString().c_str(), &count, fullNames.data(), &bufferLength, buffer.data());
+
+        if (result == ERROR_SUCCESS && count > 0) {
+            // 按版本排序包名，最新版本在前
+            std::sort(fullNames.begin(), fullNames.end(), comparePackageFullNames);
+
+            for (UINT32 i = 0; i < count; ++i) {
+                UINT32 pathLength = 0;
+                // Get pathLength
+                result = GetPackagePathByFullName(fullNames[i], &pathLength, nullptr);
+
+                if (result == ERROR_INSUFFICIENT_BUFFER) {
+                    std::vector<wchar_t> pathBuffer(pathLength);
+                    result = GetPackagePathByFullName(fullNames[i], &pathLength, pathBuffer.data());
+
+                    if (result == ERROR_SUCCESS) {
+                        installPath = QString::fromWCharArray(pathBuffer.data());
+                        break;  // 找到最新版本的包就退出
+                    }
+                }
+            }
+        }
+    }
+
+    if (installPath.isEmpty()) {
+        qWarning() << "Failed to find package for AUMID:" << AUMID;
+    }
+
+    return installPath;
+}
+
+// name path args
+QList<std::tuple<QString, QString, QString>> Win::getAppsFolderList()
+{
+    CoInitialize(nullptr);
+
+    IShellItem* psi = nullptr;
+    // PowerToys没有采用这种方法，应该是直接遍历StartMenu文件夹 & 枚举UWP（Get-StartApps、or WinRT API ？）
+    HRESULT hr = SHCreateItemInKnownFolder(FOLDERID_AppsFolder, 0, nullptr, IID_PPV_ARGS(&psi));
+
+    QList<std::tuple<QString, QString, QString>> appList;
+
+    if (SUCCEEDED(hr)) {
+        IEnumShellItems* pEnum = nullptr;
+        hr = psi->BindToHandler(nullptr, BHID_EnumItems, IID_PPV_ARGS(&pEnum));
+
+        if (SUCCEEDED(hr)) {
+            IShellItem* pChildItem = nullptr;
+            while (pEnum->Next(1, &pChildItem, nullptr) == S_OK) {
+                PWSTR _displayName = nullptr;
+                PWSTR _relativePath = nullptr;
+                auto hr_name = pChildItem->GetDisplayName(SIGDN_NORMALDISPLAY, &_displayName);
+                auto hr_path = pChildItem->GetDisplayName(SIGDN_PARENTRELATIVEPARSING, &_relativePath);
+
+                QString name, path, args;
+                if (SUCCEEDED(hr_path) && SUCCEEDED(hr_name)) {
+                    name = QString::fromWCharArray(_displayName);
+                    path = APPS_FOLDER + QString::fromWCharArray(_relativePath);
+                } else
+                    qWarning() << "Failed to get display name or path.";
+
+                // properties, ref: https://github.com/microsoft/PowerToys/blob/dca8b7ac3560a77a57202398dd7e1e68e6eb9006/src/modules/Workspaces/WorkspacesLib/AppUtils.cpp
+                CComPtr<IPropertyStore> store;
+                // 可以GetCount枚举所有属性
+                hr = pChildItem->BindToHandler(NULL, BHID_PropertyStore, IID_PPV_ARGS(&store));
+                if (FAILED(hr)) {
+                    qWarning() << "Failed to bind to property store handler.";
+                    continue;
+                }
+
+                PROPVARIANT var;
+                PropVariantInit(&var);
+
+                // 获取 System.Link.TargetParsingPath 属性 还可以获取 PKEY_AppUserModel_ID
+                hr = store->GetValue(PKEY_Link_TargetParsingPath, &var);
+                if (SUCCEEDED(hr) && var.vt == VT_LPWSTR) {
+                    path = QString::fromWCharArray(var.pwszVal);
+                }
+                PropVariantClear(&var);
+
+                PropVariantInit(&var);
+                hr = store->GetValue(PKEY_Link_Arguments, &var);
+                if (SUCCEEDED(hr) && var.vt == VT_LPWSTR) {
+                    args = QString::fromWCharArray(var.pwszVal);
+                }
+                PropVariantClear(&var);
+
+                appList << std::make_tuple(name, path, args);
+                CoTaskMemFree(_relativePath);
+                CoTaskMemFree(_displayName);
+                pChildItem->Release();
+            }
+            pEnum->Release();
+        }
+        psi->Release();
+    }
+
+    CoUninitialize();
+
+    return appList;
 }

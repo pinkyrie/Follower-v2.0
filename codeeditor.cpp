@@ -206,7 +206,7 @@ void CodeEditor::returnPress()
 
     Executor::State state;
     if (lw->isVisible())
-        state = executor.run(lw->selectedText(), true); //带上extra一起匹配
+        state = executor.run(lw->selectedText(), true); //带上extra一起匹配, 因为list中的text是带extra的
     else
         state = executor.run(Text);
 

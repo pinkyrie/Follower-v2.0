@@ -16,7 +16,6 @@
 #include <QString>
 #include <QStringList>
 #include <functional>
-#include <iostream>
 struct Command {
     QString code;
     QString extra; //额外提示（不参与匹配）

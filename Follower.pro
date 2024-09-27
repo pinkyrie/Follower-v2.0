@@ -3,10 +3,11 @@ QT       += qml
 QT       += winextras
 QT       += concurrent
 QT       += network
+QT       += xml
 #QT       += multimedia
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
-CONFIG += c++11
+CONFIG += c++17
 
 # The following define makes your compiler emit warnings if you use
 # any Qt feature that has been marked deprecated (the exact warnings
@@ -106,7 +107,7 @@ RC_ICONS = images/ICON.ico
 RESOURCES += \
     Res.qrc
 
-LIBS += -lpsapi -luser32 -lWinmm -lole32
+LIBS += -lpsapi -luser32 -lWinmm -lole32 -lPropsys
 
 
 msvc {
@@ -116,7 +117,7 @@ msvc {
 
 # 会自动在build目录下生成.rc文件并链接
 # 版本
-VERSION = 2.15.2
+VERSION = 2.16.0
 # 公司名称
 QMAKE_TARGET_COMPANY = "MrBeanC"
 # 文件说明

@@ -41,6 +41,17 @@ public:
     static DWORD getCurrentScreenReflashRate(void);
     static QSet<DWORD> getAvailableScreenReflashRates(void);
     static bool testGlobalCursorShape(LPCWSTR cursorID);
+    static QString getUWPInstallDirByName(const QString& appName);
+    Q_DECL_DEPRECATED_X("Use parsePackageFamilyName instead")
+    static QString getUWPNameFromAUMID(const QString& AUMID);
+    static QString getLogoPathFromAppxManifest(const QString& manifestPath);
+    static QIcon loadUWPLogo(const QString& logoPath);
+    static QString GUID2Path(const QString& guid);
+    static QString getUWPInstallDirByAUMID(const QString& AUMID);
+    static QList<std::tuple<QString, QString, QString>> getAppsFolderList(void);
+
+    // C++17 inline
+    inline static const QString APPS_FOLDER = "shell:AppsFolder\\";
 };
 
 #endif // WIN_H

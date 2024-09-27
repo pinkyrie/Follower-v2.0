@@ -208,7 +208,7 @@ Executor::State Executor::run(const QString& code, bool isWithExtra)
     }
 }
 
-QList<QPair<QString, QString>> Executor::matchString(const QString& str, State* state, Qt::CaseSensitivity cs) //
+QList<QPair<QString, QString>> Executor::matchString(const QString& str, State* state, int limit, Qt::CaseSensitivity cs) //
 {
     clearText();
     if (state) *state = NOCODE;
@@ -264,7 +264,7 @@ QList<QPair<QString, QString>> Executor::matchString(const QString& str, State* 
         }
 
     if (state) *state = CODE; //统一标识INNER & CODE 在此不好做区分
-    return list;
+    return list.mid(0, limit);
 }
 
 bool Executor::hasText()

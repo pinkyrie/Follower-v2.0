@@ -203,7 +203,7 @@ Executor::State Executor::run(const QString& code, bool isWithExtra)
         cmd.func(this); //指定对象
         return INNERCODE;
     } else { //最后的尝试//对人类最后的求爱
-        openFile("cmd.exe", "/c " + code, SW_HIDE); //加上"/c"(close)，不然命令不会执行// "/k"(keep)也行
+        openFile("cmd.exe", "/c " + code, SW_SHOW); //加上"/c"(close)，不然命令不会执行// "/k"(keep)也行
         return CMD;
     }
 }

@@ -168,7 +168,7 @@ void Executor::updateAppsFolderCmdList()
 {
     QtConcurrent::run([=](){
         QList<Command> list;
-        auto apps = Win::getAppsFolderList();
+        auto apps = Win::getAppList();
         for (const auto& app : apps) {
             auto [name, path, args] = app;
             list.append({name, "", path, args});

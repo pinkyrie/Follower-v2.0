@@ -531,8 +531,52 @@ QString Win::getUWPInstallDirByAUMID(const QString& AUMID)
     return installPath;
 }
 
-// name path args
-QList<std::tuple<QString, QString, QString>> Win::getAppsFolderList()
+QString readPropertyStr(IPropertyStore* store, PROPERTYKEY pk)
+{
+    QString res;
+    PROPVARIANT var;
+    PropVariantInit(&var);
+    auto hr = store->GetValue(pk, &var);
+    if (SUCCEEDED(hr) && var.vt == VT_LPWSTR) {
+        res = QString::fromWCharArray(var.pwszVal);
+    }
+    PropVariantClear(&var);
+    return res;
+}
+
+// Only String properties
+// 某些属性字符串没有对应的PKEY定义，只能遍历
+QString getPropertyByPKString(IPropertyStore* store, const QString& property)
+{
+    static QMap<QString, PROPERTYKEY> pk_cache; // 缓存已知的属性
+
+    if (pk_cache.contains(property))
+        return readPropertyStr(store, pk_cache[property]);
+
+    DWORD count = 0;
+    store->GetCount(&count);
+    for (DWORD i = 0; i < count; i++) {
+        PROPERTYKEY pk;
+        auto hr = store->GetAt(i, &pk);
+        if (FAILED(hr)) {
+            qWarning() << "Failed to get property key.";
+            continue;
+        }
+
+        CComHeapPtr<wchar_t> pkName;
+        PSGetNameFromPropertyKey(pk, &pkName);
+
+        auto _property = QString::fromStdWString(pkName.m_pData);
+        if (_property == property) {
+            pk_cache[property] = pk;
+            return readPropertyStr(store, pk);
+        }
+    }
+    return "";
+}
+
+// 从AppsFolder过滤获取UWP列表
+QList<QPair<QString, QString>> Win::getUWPList()
 {
     CoInitialize(nullptr);
 
@@ -540,7 +584,7 @@ QList<std::tuple<QString, QString, QString>> Win::getAppsFolderList()
     // PowerToys没有采用这种方法，应该是直接遍历StartMenu文件夹 & 枚举UWP（Get-StartApps、or WinRT API ？）
     HRESULT hr = SHCreateItemInKnownFolder(FOLDERID_AppsFolder, 0, nullptr, IID_PPV_ARGS(&psi));
 
-    QList<std::tuple<QString, QString, QString>> appList;
+    QList<QPair<QString, QString>> appList;
 
     if (SUCCEEDED(hr)) {
         IEnumShellItems* pEnum = nullptr;
@@ -554,7 +598,7 @@ QList<std::tuple<QString, QString, QString>> Win::getAppsFolderList()
                 auto hr_name = pChildItem->GetDisplayName(SIGDN_NORMALDISPLAY, &_displayName);
                 auto hr_path = pChildItem->GetDisplayName(SIGDN_PARENTRELATIVEPARSING, &_relativePath);
 
-                QString name, path, args;
+                QString name, path;
                 if (SUCCEEDED(hr_path) && SUCCEEDED(hr_name)) {
                     name = QString::fromWCharArray(_displayName);
                     path = APPS_FOLDER + QString::fromWCharArray(_relativePath);
@@ -570,24 +614,29 @@ QList<std::tuple<QString, QString, QString>> Win::getAppsFolderList()
                     continue;
                 }
 
-                PROPVARIANT var;
-                PropVariantInit(&var);
+                // WARN: 对于非UWP的.lnk文件，貌似很难获取其自身绝对路径，只能获取目标路径，导致ICON获取困难，故改用遍历 StartMenu
 
-                // 获取 System.Link.TargetParsingPath 属性 还可以获取 PKEY_AppUserModel_ID
-                hr = store->GetValue(PKEY_Link_TargetParsingPath, &var);
-                if (SUCCEEDED(hr) && var.vt == VT_LPWSTR) {
-                    path = QString::fromWCharArray(var.pwszVal);
-                }
-                PropVariantClear(&var);
+                // PROPVARIANT var;
+                // PropVariantInit(&var);
 
-                PropVariantInit(&var);
-                hr = store->GetValue(PKEY_Link_Arguments, &var);
-                if (SUCCEEDED(hr) && var.vt == VT_LPWSTR) {
-                    args = QString::fromWCharArray(var.pwszVal);
-                }
-                PropVariantClear(&var);
+                // // 获取 System.Link.TargetParsingPath 属性 还可以获取 "System.AppUserModel.PackageInstallPath"
+                // hr = store->GetValue(PKEY_Link_TargetParsingPath, &var);
+                // if (SUCCEEDED(hr) && var.vt == VT_LPWSTR) {
+                //     path = QString::fromWCharArray(var.pwszVal);
+                // }
+                // PropVariantClear(&var);
 
-                appList << std::make_tuple(name, path, args);
+                // PropVariantInit(&var);
+                // hr = store->GetValue(PKEY_Link_Arguments, &var);
+                // if (SUCCEEDED(hr) && var.vt == VT_LPWSTR) {
+                //     args = QString::fromWCharArray(var.pwszVal);
+                // }
+                // PropVariantClear(&var);
+
+                auto isUWP = getPropertyByPKString(store, "System.AppUserModel.PackageFullName") != "";
+                if (isUWP)
+                    appList << qMakePair(name, path);
+
                 CoTaskMemFree(_relativePath);
                 CoTaskMemFree(_displayName);
                 pChildItem->Release();
@@ -600,4 +649,23 @@ QList<std::tuple<QString, QString, QString>> Win::getAppsFolderList()
     CoUninitialize();
 
     return appList;
+}
+
+// name path args
+QList<std::tuple<QString, QString, QString>> Win::getAppList()
+{
+    QList<std::tuple<QString, QString, QString>> appList;
+    auto uwpList = getUWPList();
+    for (const auto& [name, path] : uwpList) {
+        appList << std::make_tuple(name, path, "");
+    }
+    return appList;
+}
+
+// SHGetFolderPath 的封装
+QString Win::getKnownFolderPath(int csidl)
+{
+    TCHAR szPath[MAX_PATH]; // 文档里说用 MAX_PATH (260)
+    SHGetFolderPath(nullptr, csidl, nullptr, SHGFP_TYPE_CURRENT, szPath);
+    return QString::fromWCharArray(szPath);
 }

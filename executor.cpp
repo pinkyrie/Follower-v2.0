@@ -7,6 +7,7 @@
 #include <QUrl>
 #include <windows.h>
 #include <QMessageBox>
+#include <QtConcurrent>
 #include "Utils/util.h"
 #include <Utils/WinUtility.h>
 
@@ -27,6 +28,12 @@ Executor::Executor(QObject* parent)
         QDataStream data(&file);
         data << runTimesMap;
         qDebug() << "#Write runTimesMap.dat";
+    });
+
+    qRegisterMetaType<QList<Command>>("QList<Command>");
+    connect(this, &Executor::updateAppList, this, [=](QList<Command> list) { // 信号与槽，线程安全，无需加锁
+        appList = list;
+        qDebug() << "#Updated AppList";
     });
 
     if (QFile::exists(runTimesDataPath)) {
@@ -89,7 +96,7 @@ void Executor::editNote()
     sys->noteEditor->exec();
     emit askShow();
 }
-
+// TODO: 加入对描述信息的匹配，以及打分排序
 bool Executor::isMatch(const QString& dst, const QString& str, Qt::CaseSensitivity cs) //以空格分割，乱序关键字匹配
 {
     if (isBlank(str)) return false;
@@ -157,16 +164,18 @@ bool Executor::isExistPath(const QString& str)
     return QFileInfo::exists(_str) && isAbsolutePath(_str); //增加绝对路径判断，否则可能查询系统目录（如 Windows\System32 (\ja)）
 }
 
-QList<Command> appsFolderCmdList()
+void Executor::updateAppsFolderCmdList()
 {
-    QList<Command> list;
-    static auto apps = Win::getAppsFolderList();
-    for (const auto& app : apps) {
-        auto [name, path, args] = app;
-        list.append({name, "", path, args});
-        // qDebug() << name << path;
-    }
-    return list;
+    QtConcurrent::run([=](){
+        QList<Command> list;
+        auto apps = Win::getAppsFolderList();
+        for (const auto& app : apps) {
+            auto [name, path, args] = app;
+            list.append({name, "", path, args});
+        }
+        emit updateAppList(list);
+    });
+
 }
 
 Executor::State Executor::run(const QString& code, bool isWithExtra)
@@ -192,7 +201,7 @@ Executor::State Executor::run(const QString& code, bool isWithExtra)
         return NOCODE;
     }
 
-    auto apps = appsFolderCmdList();
+    auto apps = this->appList;
     auto iter_app = std::find_if(apps.begin(), apps.end(), [=](const Command& cmd) {
         return isMatch(cmd.code, code);
     });
@@ -263,8 +272,7 @@ QList<QPair<QString, QString>> Executor::matchString(const QString& str, State* 
             codeFile[cmd.code + cmd.extra + cmd.filename] = cmd; //indexing
         }
 
-    auto apps = appsFolderCmdList();
-    for (const Command& cmd : apps)
+    for (const Command& cmd : qAsConst(appList))
         if (isMatch(cmd.code, str, cs)) {
             list << qMakePair(cmd.code + cmd.extra, cmd.filename);
             codeFile[cmd.code + cmd.extra + cmd.filename] = cmd;

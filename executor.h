@@ -72,7 +72,8 @@ private:
     const QChar JsMark = '@';
     const QChar TransMark = '!';
 
-    QList<Command> cmdList;
+    QList<Command> appList; // 扫描到的应用程序（AppsFolder）
+    QList<Command> cmdList; // 用户自定义命令
     QList<InnerCommand> innerCmdList = { //CaseInsensitive
         { "#Edit cmd", "", &Executor::editCmd },
         { "#Edit note", "", &Executor::editNote },
@@ -104,10 +105,12 @@ private:
     QString cleanPath(QString path); //去掉双引号
      //存在且是绝对路径
     bool isExistPath(const QString& str);
+    void updateAppsFolderCmdList(void);
 
 signals:
     void askHide(void);
     void askShow(void);
     void changeTeleportMode(int);
+    void updateAppList(QList<Command> appList);
 };
 #endif // EXECUTOR_H

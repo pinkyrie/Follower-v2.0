@@ -92,6 +92,7 @@ private:
     // QWidget interface
 protected:
     void hideEvent(QHideEvent* event) override;
+    void showEvent(QShowEvent* event) override;
     void focusInEvent(QFocusEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;

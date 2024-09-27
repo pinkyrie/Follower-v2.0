@@ -51,6 +51,12 @@ void CodeEditor::hideEvent(QHideEvent* event)
     emit reportResize(normalWidth, normalHeight); //瞬间归位 防止拖沓
 }
 
+void CodeEditor::showEvent(QShowEvent*)
+{
+    // 优化：仅在显示时才更新AppsFolder（后台多线程）
+    executor.updateAppsFolderCmdList();
+}
+
 void CodeEditor::focusInEvent(QFocusEvent* event)
 {
     sys->inputM->setEnMode(HWND(winId()));

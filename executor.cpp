@@ -31,7 +31,7 @@ Executor::Executor(QObject* parent)
     });
 
     qRegisterMetaType<QList<Command>>("QList<Command>");
-    connect(this, &Executor::updateAppList, this, [=](QList<Command> list) { // 信号与槽，线程安全，无需加锁
+    connect(this, &Executor::AppListChanged, this, [=](QList<Command> list) { // 信号与槽，线程安全，无需加锁
         appList = list;
         qDebug() << "#Updated AppList";
     });
@@ -166,7 +166,7 @@ bool Executor::isExistPath(const QString& str)
     return QFileInfo::exists(_str) && isAbsolutePath(_str); //增加绝对路径判断，否则可能查询系统目录（如 Windows\System32 (\ja)）
 }
 
-void Executor::updateAppsFolderCmdList()
+void Executor::updateAppList()
 {
     QtConcurrent::run([=](){
         QList<Command> list;
@@ -175,7 +175,7 @@ void Executor::updateAppsFolderCmdList()
             auto [name, path] = app;
             list.append({name, "", path, ""});
         }
-        emit updateAppList(list);
+        emit AppListChanged(list);
     });
 
 }
@@ -274,7 +274,7 @@ QList<QPair<QString, QString>> Executor::matchString(const QString& str, State* 
             codeFile[cmd.code + cmd.extra + cmd.filename] = cmd; //indexing
         }
 
-    for (const Command& cmd : qAsConst(appList))
+    for (const Command& cmd : qAsConst(appList)) // TODO: 和自定义命令去重
         if (isMatch(cmd.code, str, cs)) {
             list << qMakePair(cmd.code + cmd.extra, cmd.filename);
             codeFile[cmd.code + cmd.extra + cmd.filename] = cmd;

@@ -105,12 +105,12 @@ private:
     QString cleanPath(QString path); //去掉双引号
      //存在且是绝对路径
     bool isExistPath(const QString& str);
-    void updateAppsFolderCmdList(void);
+    void updateAppList(void);
 
 signals:
     void askHide(void);
     void askShow(void);
     void changeTeleportMode(int);
-    void updateAppList(QList<Command> appList);
+    void AppListChanged(QList<Command> appList);
 };
 #endif // EXECUTOR_H

@@ -39,6 +39,8 @@ CodeEditor::CodeEditor(int width, int height, QWidget* parent)
     auto cmdList = executor.getCMDList();
     for (const auto& cmd : qAsConst(cmdList))
         iconPro.addCache(cmd.filename); //初始化缓存
+
+    executor.updateAppList(); //初始化AppList
 }
 
 void CodeEditor::hideEvent(QHideEvent* event)
@@ -54,7 +56,7 @@ void CodeEditor::hideEvent(QHideEvent* event)
 void CodeEditor::showEvent(QShowEvent*)
 {
     // 优化：仅在显示时才更新AppsFolder（后台多线程）
-    executor.updateAppsFolderCmdList();
+    executor.updateAppList();
 }
 
 void CodeEditor::focusInEvent(QFocusEvent* event)

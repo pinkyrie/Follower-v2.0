@@ -45,7 +45,7 @@ public:
         PATH
     };
     Executor(QObject* parent = nullptr);
-    State run(const QString& code, bool isWithExtra = false);
+    State run(const QString& code, bool asAdmin = false, bool isWithExtra = false);
     QList<QPair<QString, QString>> matchString(const QString& str, State* state = nullptr, int limit = 15, Qt::CaseSensitivity cs = Qt::CaseInsensitive); //cmdList中匹配的命令(模糊查询)
     bool hasText(void);
     QString text(void);
@@ -81,7 +81,7 @@ private:
         { "#Teleport [On]", "#Teleport [On/Auto/Off]", [](Executor* exe) { emit exe->changeTeleportMode(1); } },
         { "#Teleport [Auto]", "#Teleport [On/Auto/Off]", [](Executor* exe) { emit exe->changeTeleportMode(0); } },
         { "#Teleport [Off]", "#Teleport [On/Auto/Off]", [](Executor* exe) { emit exe->changeTeleportMode(-1); } },
-        { "#Open [Core-Info]", "", [](Executor* exe) { exe->openFile(exe->dirPath); } },
+        { "#Open [Core-Info]", "", [](Executor* exe) { exe->runApp(exe->dirPath); } },
         { "#Lock-[Keyboard]", "", [](Executor* exe) {Q_UNUSED(exe); Hook::setKeyboardHook(); } },
         { "#quit", "", [](Executor* exe) { Q_UNUSED(exe); qApp->quit(); } }
     };
@@ -94,7 +94,7 @@ private:
 
 private:
     void readCmdList(void);
-    void openFile(const QString& filename, const QString& parameter = "", int nShowMode = SW_SHOW);
+    void runApp(const QString& filename, const QString& parameter = "", bool runAsAdmin = false, int nShowMode = SW_SHOW);
     void editCmd(void);
     void editInputM(void);
     void editNote(void);

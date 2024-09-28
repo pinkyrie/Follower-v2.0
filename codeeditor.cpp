@@ -80,7 +80,7 @@ void CodeEditor::keyPressEvent(QKeyEvent* event)
     if (key == Qt::Key_Space && text().isEmpty()) //文本为空时，不允许空格(没必要)
         return;
     else if (key == Qt::Key_Up) {
-        if (modifiers & Qt::ControlModifier) { //上条记录
+        if (modifiers & Qt::ShiftModifier) { //上条记录
             QString text = pastCodeList.past();
             setText(text);
             textEdit(text);
@@ -89,7 +89,7 @@ void CodeEditor::keyPressEvent(QKeyEvent* event)
                 lw->selectPre();
         }
     } else if (key == Qt::Key_Down) {
-        if (modifiers & Qt::ControlModifier) { //下条记录
+        if (modifiers & Qt::ShiftModifier) { //下条记录
             QString text = pastCodeList.next();
             setText(text);
             textEdit(text);
@@ -208,15 +208,16 @@ void CodeEditor::adjustWholeSize(const QString& str)
 
 void CodeEditor::returnPress()
 {
+    bool hasCtrl = QApplication::keyboardModifiers() & Qt::ControlModifier;
     QString Text = text().isEmpty() ? placeholderText() : text(); //统一 text & placeHolder的执行方式
 
     pastCodeList << Text; //加入历史记录
 
     Executor::State state;
     if (lw->isVisible())
-        state = executor.run(lw->selectedText(), true); //带上extra一起匹配, 因为list中的text是带extra的
+        state = executor.run(lw->selectedText(), hasCtrl, true); //带上extra一起匹配, 因为list中的text是带extra的
     else
-        state = executor.run(Text);
+        state = executor.run(Text, hasCtrl);
 
     if (executor.hasText()) {
         QString echoText = executor.text();

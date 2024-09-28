@@ -60,14 +60,15 @@ void Executor::readCmdList()
     });
 }
 
-void Executor::openFile(const QString& filename, const QString& parameter, int nShowMode)
+// ShellExecute
+void Executor::runApp(const QString& filename, const QString& parameter, bool runAsAdmin, int nShowMode)
 {
     if (filename == "") return; //""代表本工作目录
     int pos = filename.lastIndexOf('\\');
     QString dirPath = filename.left(pos); //缺省目录，防止找不到缺省文件//if pos == -1 return entire string
     qDebug() << "#run:" << filename << parameter;
     // The default verb is used, if available. If not, the "open" verb is used. If neither verb is available, the system uses the first verb listed in the registry.
-    ShellExecuteW(0, NULL, filename.toStdWString().c_str(), parameter.toStdWString().c_str(), dirPath.toStdWString().c_str(), nShowMode);
+    ShellExecuteW(0, runAsAdmin ? L"runas" : NULL, filename.toStdWString().c_str(), parameter.toStdWString().c_str(), dirPath.toStdWString().c_str(), nShowMode);
     // 对于.lnk，如果使用"open"，则会在控制台输出很多shell信息，造成卡顿
     //宽字符(Unicode)才能完美转换，否则可能编码错误
     //神奇现象：ShellExecute会新开线程，不返回虽然阻塞 但是事件循环继续进行
@@ -180,7 +181,7 @@ void Executor::updateAppList()
 
 }
 
-Executor::State Executor::run(const QString& code, bool isWithExtra)
+Executor::State Executor::run(const QString& code, bool asAdmin, bool isWithExtra)
 {
     clearText();
     if (code.isEmpty()) return NOCODE;
@@ -197,7 +198,7 @@ Executor::State Executor::run(const QString& code, bool isWithExtra)
 
     if (Util::maybePath(code)) { // 路径和命令的匹配是互斥的，疑似路径后，不再匹配命令，因为UI不会再显示命令候选
         if (isExistPath(code)) {
-            openFile(code);
+            runApp(code); // 对于路径，不能用runas运行，否则没反应，必须得用open或NULL(默认)
             return PATH;
         }
         return NOCODE;
@@ -222,13 +223,13 @@ Executor::State Executor::run(const QString& code, bool isWithExtra)
 
     if (isFind) {
         Command cmd = *iter;
-        openFile(cmd.filename, cmd.parameter);
+        runApp(cmd.filename, cmd.parameter, asAdmin);
         // runTimesMap[cmd.filename + cmd.parameter]++; //统计运行次数，filename+param作为唯一标识
         //qDebug() << runTimesMap;
         return CODE;
     } else if (isFind_app) {
         Command cmd = *iter_app;
-        openFile(cmd.filename, cmd.parameter);
+        runApp(cmd.filename, cmd.parameter, asAdmin);
         // runTimesMap[cmd.filename + cmd.parameter]++;
         return CODE;
     } else if (isFind_inner) {
@@ -237,7 +238,7 @@ Executor::State Executor::run(const QString& code, bool isWithExtra)
         cmd.func(this); //指定对象
         return INNERCODE;
     } else { //最后的尝试//对人类最后的求爱
-        openFile("cmd.exe", "/c " + code, SW_SHOW); //加上"/c"(close)，不然命令不会执行// "/k"(keep)也行
+        runApp("cmd.exe", "/c " + code, asAdmin); //加上"/c"(close)，不然命令不会执行// "/k"(keep)也行
         return CMD;
     }
 }

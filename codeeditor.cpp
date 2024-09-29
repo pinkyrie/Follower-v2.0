@@ -23,6 +23,9 @@ CodeEditor::CodeEditor(int width, int height, QWidget* parent)
 
     lw->hide();
 
+    act_admin = this->addAction(QApplication::style()->standardIcon(QStyle::StandardPixmap::SP_VistaShield), QLineEdit::TrailingPosition);
+    act_admin->setVisible(false);
+
     connect(this, &CodeEditor::textEdited, this, &CodeEditor::textEdit);
     connect(this, &CodeEditor::returnPressed, this, &CodeEditor::returnPress);
 
@@ -108,8 +111,21 @@ void CodeEditor::keyPressEvent(QKeyEvent* event)
             deselect();
             return;
         }
+    } else if (key == Qt::Key_Control) {
+        act_admin->setVisible(true);
     }
     return QLineEdit::keyPressEvent(event);
+}
+
+void CodeEditor::keyReleaseEvent(QKeyEvent* event)
+{
+    int key = event->key();
+
+    if (key == Qt::Key_Control) {
+        act_admin->setVisible(false);
+    }
+
+    return QLineEdit::keyReleaseEvent(event);
 }
 
 void CodeEditor::showLabel(const QString& text)
@@ -209,8 +225,9 @@ void CodeEditor::adjustWholeSize(const QString& str)
 void CodeEditor::returnPress()
 {
     bool hasCtrl = QApplication::keyboardModifiers() & Qt::ControlModifier;
-    QString Text = text().isEmpty() ? placeholderText() : text(); //统一 text & placeHolder的执行方式
+    act_admin->setVisible(false); // 执行完毕后，隐藏；因为Ctrl的ReleaseEvent不会触发（焦点转移）
 
+    QString Text = text().isEmpty() ? placeholderText() : text(); //统一 text & placeHolder的执行方式
     pastCodeList << Text; //加入历史记录
 
     Executor::State state;

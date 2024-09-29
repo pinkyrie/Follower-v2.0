@@ -89,6 +89,8 @@ private:
 
     PastCodeList pastCodeList { 10 }; //code历史记录//不能用()存在歧义(函数声明or变量声明)
 
+    QAction* act_admin = nullptr;
+
     // QWidget interface
 protected:
     void hideEvent(QHideEvent* event) override;
@@ -96,6 +98,7 @@ protected:
     void focusInEvent(QFocusEvent* event) override;
     void resizeEvent(QResizeEvent* event) override;
     void keyPressEvent(QKeyEvent* event) override;
+    void keyReleaseEvent(QKeyEvent* event) override;
 
 private:
     void showLabel(const QString& text);

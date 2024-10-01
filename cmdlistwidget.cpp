@@ -29,7 +29,7 @@ void CMDListWidget::addIconItems(const IconStrList& list) //貌似加载不同�
     this->clear();
     for (auto& p : list) {
         static QIcon nullIcon(":/images/web.png"); //默认图标
-        QListWidgetItem* item = new QListWidgetItem(p.second, this);
+        QListWidgetItem* item = new QListWidgetItem(p.second); // 这里指定了parent的话，会自动插入指定list
         item->setSizeHint(QSize(0, Item_H));
         //item->setIcon(p.first); //QIcon()==无图标
         if (!p.first.isNull())
@@ -41,15 +41,16 @@ void CMDListWidget::addIconItems(const IconStrList& list) //貌似加载不同�
 
     QTimer::singleShot(0, this, [=]() { //进入事件队列 在首次渲染list完成后再add Icon
         //QtConcurrent::run([=]() {
-        qApp->processEvents();
+        //qApp->processEvents();
         QTime t = tModify; //static 无需捕获
         int rows = count();
-        if (!isVisible()) return;
-        if (listCache.size() != rows) return;
         for (int i = 0; i < rows; i++) {
+            if (!isVisible()) return;
             if (t != tModify) return; //listCache被修改
+            if (listCache.size() != rows) return; //防止hideEvent清空listCache
+            // icon.pixmap(16, 16); //获取使其强制缓存 (在后台线程貌似会卡死？)
             item(i)->setIcon(listCache[i].first); //setIcon不耗时，渲染耗时
-            //qApp->processEvents();
+            qApp->processEvents(); //假如list为0，会触发hideEvent，导致listCache清空
         }
         //});
     });
@@ -98,6 +99,7 @@ void CMDListWidget::keyPressEvent(QKeyEvent* event)
 void CMDListWidget::hideEvent(QHideEvent* event)
 {
     Q_UNUSED(event)
+    // 这里没有去更新tModify，bomb
     listCache.clear(); //hide时Cache失效，防止show时 Cache==list 导致不绘制
 }
 

@@ -633,10 +633,10 @@ void Widget::paintEvent(QPaintEvent* event)
         QString dev;
         if (audioOuptputDev.name.contains("扬声器") || audioOuptputDev.name.contains("Speakers", Qt::CaseInsensitive))
             dev = ""; //🔔🔊 //咳咳 学习QQ，免提就什么都不显示，节省一个图标，更清爽
-        else if (audioOuptputDev.name.contains("耳机") || audioOuptputDev.name.contains("Headphones", Qt::CaseInsensitive))
+        else if (audioOuptputDev.name.contains("耳机") || audioOuptputDev.name.contains("Head", Qt::CaseInsensitive)) // Headphones or Headset, by darli
             dev = "🎧";
         else
-            dev = "🎚️"; //by Darli: 如果时无法识别的类型（或者自定义名称） 则balabala
+            dev = "❔︎"; //🎚️by Darli: 如果时无法识别的类型（或者自定义名称） 则balabala
         painter.setFont(QFont("Consolas", 8));
         painter.drawText(QRect(rect.left(), rect.top() + DPI(1), rect.right() - DPI(1), rect.bottom()), Qt::AlignRight | Qt::AlignTop, dev);
 

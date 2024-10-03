@@ -34,7 +34,14 @@ QIcon CacheIconProvider::getUrlIcon(const QString& path)
             }
         } else if (path.endsWith(".url")) {
             auto [url, iconPath] = Win::parseInternetShortcut(path);
-            icon = iconPath.isEmpty() ? WebIcon : QIcon(iconPath);
+            if (iconPath.isEmpty())
+                icon = WebIcon;
+            else {
+                if (iconPath.endsWith(".exe"))
+                    icon = QFileIconProvider::icon(QFileInfo(iconPath));
+                else
+                    icon = QIcon(iconPath);
+            }
         } else
             icon = QFileIconProvider::icon(QFileInfo(path));
     }

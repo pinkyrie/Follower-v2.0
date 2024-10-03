@@ -260,7 +260,7 @@ Executor::State Executor::run(const QString& code, bool asAdmin, bool isWithExtr
         cmd.func(this); //指定对象
         return INNERCODE;
     } else { //最后的尝试//对人类最后的求爱
-        runApp("cmd.exe", "/c " + code, asAdmin); //加上"/c"(close)，不然命令不会执行// "/k"(keep)也行
+        runApp("cmd.exe", "/k " + code, asAdmin); //加上"/c"(close)，不然命令不会执行// "/k"(keep)也行
         return CMD;
     }
 }

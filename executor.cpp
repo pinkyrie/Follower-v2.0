@@ -207,6 +207,7 @@ Executor::State Executor::run(const QString& code, bool asAdmin, bool isWithExtr
 {
     clearText();
     if (code.isEmpty()) return NOCODE;
+    if (code == OmitMark) return NOCODE;
 
     if (symbol(code) == Js_Cmd) {
         QString body = code.simplified().mid(1);
@@ -328,7 +329,13 @@ QList<QPair<QString, QString>> Executor::matchString(const QString& str, State* 
         }
 
     if (state) *state = CODE; //统一标识INNER & CODE 在此不好做区分
-    return list.mid(0, limit);
+
+    if (list.size() > limit) {
+        list = list.mid(0, limit);
+        list << qMakePair(OmitMark, QString(""));
+    }
+
+    return list;
 }
 
 bool Executor::hasText()

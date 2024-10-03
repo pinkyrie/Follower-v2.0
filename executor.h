@@ -46,7 +46,7 @@ public:
     };
     Executor(QObject* parent = nullptr);
     State run(const QString& code, bool asAdmin = false, bool isWithExtra = false);
-    QList<QPair<QString, QString>> matchString(const QString& str, State* state = nullptr, int limit = 15, Qt::CaseSensitivity cs = Qt::CaseInsensitive); //cmdList中匹配的命令(模糊查询)
+    QList<QPair<QString, QString>> matchString(const QString& str, State* state = nullptr, int limit = 8, Qt::CaseSensitivity cs = Qt::CaseInsensitive); //cmdList中匹配的命令(模糊查询)
     bool hasText(void);
     QString text(void);
     QList<Command> getCMDList(void);
@@ -71,6 +71,8 @@ private:
     const QChar InnerMark = '#';
     const QChar JsMark = '@';
     const QChar TransMark = '!';
+
+    inline static const QString OmitMark = "...";
 
     QList<Command> appList; // 扫描到的应用程序（AppsFolder）
     QList<Command> cmdList; // 用户自定义命令

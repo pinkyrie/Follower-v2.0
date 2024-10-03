@@ -46,6 +46,28 @@ Executor::Executor(QObject* parent)
         data >> runTimesMap;
         qDebug() << "#Read runTimesMap.dat";
     }
+
+    if (pinyinMap.isEmpty()) {
+        const QString PinyinFile = QApplication::applicationDirPath() + "\\pinyin.txt";
+        QFile file(PinyinFile);
+        if (!file.exists()) {
+            QMessageBox::critical(nullptr, "File Not Found", QString("Cannot find \"%1\"").arg(PinyinFile));
+            return;
+        }
+        if (!file.open(QFile::ReadOnly | QFile::Text)) {
+            QMessageBox::critical(nullptr, "File Read Error", QString("Cannot open \"%1\"").arg(PinyinFile));
+            return;
+        }
+
+        QTextStream in(&file);
+        in.setCodec("UTF-8"); //明确设置为 UTF-8 编码, 默认貌似不对
+        while (!in.atEnd()) {
+            QString line = in.readLine();
+            if (line.size() < 3) continue;
+            pinyinMap[line.at(0)] = line.mid(2).split(','); // 多音字
+        }
+        qDebug() << "#Read pinyin.txt" << pinyinMap.size();
+    }
 }
 
 void Executor::readCmdList()
@@ -99,11 +121,47 @@ void Executor::editNote()
     sys->noteEditor->exec();
     emit askShow();
 }
+
+QStringList toPinyin(const QString& str)
+{
+    static QMap<QString, QStringList> pinyinCache;
+    if (pinyinCache.contains(str)) return pinyinCache[str];
+
+    QStringList pinyinList;
+    for (const QChar& ch : str) {
+        if (ch.script() == QChar::Script_Han) { // ch.isLetterOrNumber()对于汉字会返回true，离谱
+            auto candidate = Executor::pinyinMap.value(ch, {ch}); //多音字
+            if (pinyinList.empty()) {
+                pinyinList = candidate;
+            } else {
+                QStringList tmp;
+                for (const auto& pinyin: qAsConst(candidate))
+                    for (const auto& preStr: qAsConst(pinyinList))
+                        tmp.push_back(preStr + pinyin);
+                pinyinList = tmp;
+            }
+        } else {
+            if (pinyinList.empty())
+                pinyinList.append(ch);
+            else {
+                for (auto& str: pinyinList)
+                    str += ch;
+            }
+        }
+    }
+
+    // qDebug() << "#toPinyin:" << str << pinyinList;
+    pinyinCache[str] = pinyinList;
+    return pinyinList;
+}
+
 // TODO: 加入对描述信息的匹配，以及打分排序
 bool Executor::isMatch(const QString& dst, const QString& str, Qt::CaseSensitivity cs) //以空格分割，乱序关键字匹配
 {
     if (isBlank(str)) return false;
     if (symbol(dst) != symbol(str)) return false; //不同级别命令不比较
+
+    if (dst.compare(str, cs) == 0) return true; //完全匹配
     //if ((str.at(0) == '#' && dst.at(0) != '#') || (str.at(0) != '#' && dst.at(0) == '#')) return false; //加入匹配size 符号类别二次匹配 getsymbol!!!!!!!!!!!!!!!!!!!
     bool extra = str.endsWith(' '); //(如："qt "->"qt"：false 以保证"qt code"快捷匹配)
     static const QRegExp reg("\\W+"); //匹配至少一个[非字母数字]
@@ -115,6 +173,13 @@ bool Executor::isMatch(const QString& dst, const QString& str, Qt::CaseSensitivi
 
     if (strList.empty()) return false;
     if (dstList.size() < strList.size() + extra) return false; //' '顶一个size
+
+    if (Util::containsChinese(dst) && !Util::containsChinese(str)) {
+        auto dst_pinyins = toPinyin(dst);
+        for (const auto& pinyin: dst_pinyins)
+            if (pinyin.contains(str, Qt::CaseInsensitive))
+                return true;
+    }
 
     for (const QString& _str : qAsConst(strList)) { //存在多次匹配同一个单词问题(不过问题不大)
         bool flag = false;
@@ -192,7 +257,7 @@ void Executor::updateAppList()
                 auto exeCmd = target.toLower() + args;
                 // 和自定义命令去重
                 if ((!exeCmd.isEmpty() && launchCmdSet.contains(exeCmd)) || launchCmdSet.contains(path.toLower())) {
-                    qDebug() << "#Duplicated:" << name;
+                    // qDebug() << "#Duplicated:" << name;
                     continue;
                 }
             }

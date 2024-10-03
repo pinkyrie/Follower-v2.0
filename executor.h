@@ -59,6 +59,8 @@ public:
     const QString iniFilePath = Path::iniFile();
     const QString runTimesDataPath = Path::runTimesData();
 
+    inline static QMap<QChar, QStringList> pinyinMap;
+
 private:
     enum CmdSymbol {
         Inner_Cmd,

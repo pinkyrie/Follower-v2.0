@@ -679,8 +679,8 @@ QList<std::tuple<QString, QString>> Win::getAppList()
     for (auto& link: linkList) {
         // TODO: 这里.symLinkTarget()获取得不太精准，桌面上的DeepL.lnk的target返回空，建议使用COM接口获取
         // 对于该文件，COM接口获取target也是空（但是args是正确的），怪，且该文件不用QDir::System扫不出来，aaa
-        auto linkInfo = getShortcutInfo(link.second);
-        auto pair = qMakePair(link.first, linkInfo.first + " " + linkInfo.second);
+        auto [target, args] = getShortcutInfo(link.second);
+        auto pair = qMakePair(link.first.toLower(), target.toLower() + args);
         if (name_target_set.contains(pair)) {
             // qDebug() << "Skip duplicate link:" << link;
             continue;

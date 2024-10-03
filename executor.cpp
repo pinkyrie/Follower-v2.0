@@ -173,7 +173,7 @@ void Executor::updateAppList()
         static QSet<QString> lastLaunchCmdSet;
         QSet<QString> launchCmdSet;
         for (const Command& cmd : qAsConst(cmdList))
-            launchCmdSet << (cmd.path + cmd.param);
+            launchCmdSet << (cmd.path.toLower() + cmd.param);
 
         QList<Command> list;
         static QList<std::tuple<QString, QString>> lastApps;
@@ -189,9 +189,9 @@ void Executor::updateAppList()
             auto [name, path] = app;
             if (QFileInfo(path).isShortcut()) { // .lnk, not include .url
                 auto [target, args] = Win::getShortcutInfo(path);
-                auto exeCmd = target + args;
+                auto exeCmd = target.toLower() + args;
                 // 和自定义命令去重
-                if ((!exeCmd.isEmpty() && launchCmdSet.contains(exeCmd)) || launchCmdSet.contains(path)) {
+                if ((!exeCmd.isEmpty() && launchCmdSet.contains(exeCmd)) || launchCmdSet.contains(path.toLower())) {
                     qDebug() << "#Duplicated:" << name;
                     continue;
                 }

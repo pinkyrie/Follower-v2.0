@@ -111,6 +111,6 @@ signals:
     void askHide(void);
     void askShow(void);
     void changeTeleportMode(int);
-    void AppListChanged(QList<Command> appList);
+    void appListChanged(QList<Command> appList);
 };
 #endif // EXECUTOR_H

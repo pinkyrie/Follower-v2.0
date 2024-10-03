@@ -31,7 +31,7 @@ Executor::Executor(QObject* parent)
     });
 
     qRegisterMetaType<QList<Command>>("QList<Command>");
-    connect(this, &Executor::AppListChanged, this, [=](QList<Command> list) { // 信号与槽，线程安全，无需加锁
+    connect(this, &Executor::appListChanged, this, [=](QList<Command> list) { // 信号与槽，线程安全，无需加锁
         appList = list;
         qDebug() << "#Updated AppList";
     });
@@ -54,7 +54,7 @@ void Executor::readCmdList()
     CmdEditor::TableList list = sys->cmdEditor->getContentList();
     cmdList.clear();
     for (QStringList& line : list)
-        cmdList.append({line.at(0), line.at(1), line.at(2), line.at(3)});
+        cmdList.append({line.at(0), line.at(1), QDir::toNativeSeparators(line.at(2)), line.at(3)});
     std::sort(cmdList.begin(), cmdList.end(), [](const Command& a, const Command& b) {
         return a.code.length() < b.code.length();
     });
@@ -170,13 +170,35 @@ bool Executor::isExistPath(const QString& str)
 void Executor::updateAppList()
 {
     QtConcurrent::run([=](){
+        static QSet<QString> lastLaunchCmdSet;
+        QSet<QString> launchCmdSet;
+        for (const Command& cmd : qAsConst(cmdList))
+            launchCmdSet << (cmd.filename + cmd.parameter);
+
         QList<Command> list;
+        static QList<std::tuple<QString, QString>> lastApps;
         auto apps = Win::getAppList();
-        for (const auto& app : apps) {
+        if (launchCmdSet == lastLaunchCmdSet && apps == lastApps) {
+            qDebug() << "#AppList & cmdList Unchanged";
+            return;
+        }
+        lastLaunchCmdSet = launchCmdSet;
+        lastApps = apps;
+
+        for (const auto& app : qAsConst(apps)) {
             auto [name, path] = app;
+            if (QFileInfo(path).isShortcut()) { // .lnk, not include .url
+                auto [target, args] = Win::getShortcutInfo(path);
+                auto exeCmd = target + args;
+                // 和自定义命令去重
+                if ((!exeCmd.isEmpty() && launchCmdSet.contains(exeCmd)) || launchCmdSet.contains(path)) {
+                    qDebug() << "#Duplicated:" << name;
+                    continue;
+                }
+            }
             list.append({name, "", path, ""});
         }
-        emit AppListChanged(list);
+        emit appListChanged(list);
     });
 
 }
@@ -275,7 +297,7 @@ QList<QPair<QString, QString>> Executor::matchString(const QString& str, State* 
             codeFile[cmd.code + cmd.extra + cmd.filename] = cmd; //indexing
         }
 
-    for (const Command& cmd : qAsConst(appList)) // TODO: 和自定义命令去重
+    for (const Command& cmd : qAsConst(appList))
         if (isMatch(cmd.code, str, cs)) {
             list << qMakePair(cmd.code + cmd.extra, cmd.filename);
             codeFile[cmd.code + cmd.extra + cmd.filename] = cmd;

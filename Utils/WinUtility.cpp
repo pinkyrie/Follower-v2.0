@@ -658,12 +658,12 @@ QList<std::tuple<QString, QString>> Win::getAppList()
     QList<std::tuple<QString, QString>> appList;
 
     static auto getApps = [](const QString& path) -> QList<QPair<QString, QString>> {
-        qDebug() << "Searching in:" << path;
+        // qDebug() << "Searching in:" << path;
         QList<QPair<QString, QString>> apps;
         // QDir::System: on Windows, .lnk files are included, 不加的话某些.lnk扫不出来，例如桌面上的DeepL
         QDirIterator it(path, QStringList() << "*.lnk" << "*.url", QDir::System | QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
         while (it.hasNext())
-            apps << qMakePair(it.fileInfo().completeBaseName(), it.next());
+            apps << qMakePair(it.fileInfo().completeBaseName(), QDir::toNativeSeparators(it.next()));
         return apps;
     };
 
@@ -678,7 +678,9 @@ QList<std::tuple<QString, QString>> Win::getAppList()
     QSet<QPair<QString, QString>> name_target_set;
     for (auto& link: linkList) {
         // TODO: 这里.symLinkTarget()获取得不太精准，桌面上的DeepL.lnk的target返回空，建议使用COM接口获取
-        auto pair = qMakePair(link.first, QFileInfo(link.second).symLinkTarget());
+        // 对于该文件，COM接口获取target也是空（但是args是正确的），怪，且该文件不用QDir::System扫不出来，aaa
+        auto linkInfo = getShortcutInfo(link.second);
+        auto pair = qMakePair(link.first, linkInfo.first + " " + linkInfo.second);
         if (name_target_set.contains(pair)) {
             // qDebug() << "Skip duplicate link:" << link;
             continue;
@@ -700,4 +702,41 @@ QString Win::getKnownFolderPath(int csidl)
     TCHAR szPath[MAX_PATH]; // 文档里说用 MAX_PATH (260)
     SHGetFolderPath(nullptr, csidl, nullptr, SHGFP_TYPE_CURRENT, szPath);
     return QString::fromWCharArray(szPath);
+}
+
+// 获取快捷方式目标路径和参数，用QFileInfo不能获取args，而且对于某些文件，target也是空，哼
+QPair<QString, QString> Win::getShortcutInfo(const QString& lnkPath)
+{
+    HRESULT hr;
+    IShellLink* psl;
+    IPersistFile* ppf;
+
+    QString target, args;
+
+    hr = CoInitialize(NULL);
+    if (SUCCEEDED(hr)) {
+        hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLink, (LPVOID*)&psl);
+        if (SUCCEEDED(hr)) {
+            hr = psl->QueryInterface(IID_IPersistFile, (void**)&ppf);
+            if (SUCCEEDED(hr)) {
+                hr = ppf->Load(reinterpret_cast<LPCOLESTR>(lnkPath.utf16()), STGM_READ);
+                if (SUCCEEDED(hr)) {
+                    wchar_t szTargetPath[MAX_PATH];
+                    hr = psl->GetPath(szTargetPath, MAX_PATH, NULL, SLGP_UNCPRIORITY);
+                    if (SUCCEEDED(hr))
+                        target = QString::fromWCharArray(szTargetPath);
+
+                    wchar_t szArgs[MAX_PATH];
+                    hr = psl->GetArguments(szArgs, MAX_PATH);
+                    if (SUCCEEDED(hr))
+                        args = QString::fromWCharArray(szArgs);
+                }
+                ppf->Release();
+            }
+            psl->Release();
+        }
+        CoUninitialize();
+    }
+
+    return qMakePair(target, args);
 }

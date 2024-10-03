@@ -111,7 +111,7 @@ void CodeEditor::keyPressEvent(QKeyEvent* event)
             deselect();
             return;
         }
-    } else if (key == Qt::Key_Control) {
+    } else if (key == Qt::Key_Control && lw->isVisible()) {
         act_admin->setVisible(true);
     }
     return QLineEdit::keyPressEvent(event);

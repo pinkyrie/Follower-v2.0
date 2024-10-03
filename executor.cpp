@@ -173,7 +173,7 @@ void Executor::updateAppList()
         static QSet<QString> lastLaunchCmdSet;
         QSet<QString> launchCmdSet;
         for (const Command& cmd : qAsConst(cmdList))
-            launchCmdSet << (cmd.filename + cmd.parameter);
+            launchCmdSet << (cmd.path + cmd.param);
 
         QList<Command> list;
         static QList<std::tuple<QString, QString>> lastApps;
@@ -245,13 +245,13 @@ Executor::State Executor::run(const QString& code, bool asAdmin, bool isWithExtr
 
     if (isFind) {
         Command cmd = *iter;
-        runApp(cmd.filename, cmd.parameter, asAdmin);
+        runApp(cmd.path, cmd.param, asAdmin);
         // runTimesMap[cmd.filename + cmd.parameter]++; //统计运行次数，filename+param作为唯一标识
         //qDebug() << runTimesMap;
         return CODE;
     } else if (isFind_app) {
         Command cmd = *iter_app;
-        runApp(cmd.filename, cmd.parameter, asAdmin);
+        runApp(cmd.path, cmd.param, asAdmin);
         // runTimesMap[cmd.filename + cmd.parameter]++;
         return CODE;
     } else if (isFind_inner) {
@@ -293,14 +293,14 @@ QList<QPair<QString, QString>> Executor::matchString(const QString& str, State* 
     QMap<QString, Command> codeFile;
     for (const Command& cmd : qAsConst(cmdList))
         if (isMatch(cmd.code, str, cs)) { //忽略大小写//cmd.code.indexOf(str, 0, Qt::CaseInsensitive) == 0)
-            list << qMakePair(cmd.code + cmd.extra, cmd.filename);
-            codeFile[cmd.code + cmd.extra + cmd.filename] = cmd; //indexing
+            list << qMakePair(cmd.code + cmd.extra, cmd.path);
+            codeFile[cmd.code + cmd.extra + cmd.path] = cmd; //indexing
         }
 
     for (const Command& cmd : qAsConst(appList))
         if (isMatch(cmd.code, str, cs)) {
-            list << qMakePair(cmd.code + cmd.extra, cmd.filename);
-            codeFile[cmd.code + cmd.extra + cmd.filename] = cmd;
+            list << qMakePair(cmd.code + cmd.extra, cmd.path);
+            codeFile[cmd.code + cmd.extra + cmd.path] = cmd;
         }
 
     //无需去重 可能出现同名不同path等 让用户选择

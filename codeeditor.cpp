@@ -41,7 +41,7 @@ CodeEditor::CodeEditor(int width, int height, QWidget* parent)
 
     auto cmdList = executor.getCMDList();
     for (const auto& cmd : qAsConst(cmdList))
-        iconPro.addCache(cmd.filename); //初始化缓存
+        iconPro.addCache(cmd.path); //初始化缓存
 
     executor.updateAppList(); //初始化AppList
 }

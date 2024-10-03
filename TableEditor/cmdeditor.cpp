@@ -19,7 +19,7 @@ CmdEditor::CmdEditor(const QString& Path, QWidget* parent)
     table->setColumnCount(4);
     table->setHorizontalHeaderLabels(QStringList() << "Code"
                                                    << "Extra"
-                                                   << "FileName"
+                                                   << "FilePath"
                                                    << "Parameter");
 
     connect(ui->sniper, &Sniper::windowSelectStart, this, [=]() {

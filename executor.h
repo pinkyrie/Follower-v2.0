@@ -19,8 +19,8 @@
 struct Command {
     QString code;
     QString extra; //额外提示（不参与匹配）
-    QString filename;
-    QString parameter;
+    QString path;
+    QString param;
 };
 class Executor;
 struct InnerCommand {

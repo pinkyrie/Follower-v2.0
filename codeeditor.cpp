@@ -128,6 +128,17 @@ void CodeEditor::keyReleaseEvent(QKeyEvent* event)
     return QLineEdit::keyReleaseEvent(event);
 }
 
+void CodeEditor::wheelEvent(QWheelEvent* event)
+{
+    if (lw->isVisible()) {
+        if (event->angleDelta().y() > 0)
+            lw->selectPre();
+        else
+            lw->selectNext();
+    }
+    QLineEdit::wheelEvent(event);
+}
+
 void CodeEditor::showLabel(const QString& text)
 {
     hideList(false);

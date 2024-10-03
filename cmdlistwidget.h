@@ -28,6 +28,7 @@ signals:
     // QWidget interface
 protected:
     void keyPressEvent(QKeyEvent* event) override;
+    void wheelEvent(QWheelEvent* event) override;
 
     // QWidget interface
 protected:

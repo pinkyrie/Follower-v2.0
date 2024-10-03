@@ -96,6 +96,15 @@ void CMDListWidget::keyPressEvent(QKeyEvent* event)
     return QListWidget::keyPressEvent(event);
 }
 
+void CMDListWidget::wheelEvent(QWheelEvent* event)
+{
+    if (event->angleDelta().y() > 0)
+        selectPre();
+    else
+        selectNext();
+    return QListWidget::wheelEvent(event);
+}
+
 void CMDListWidget::hideEvent(QHideEvent* event)
 {
     Q_UNUSED(event)

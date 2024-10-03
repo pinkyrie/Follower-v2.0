@@ -52,6 +52,7 @@ public:
     static QList<std::tuple<QString, QString>> getAppList(void);
     static QString getKnownFolderPath(int csidl);
     static QPair<QString, QString> getShortcutInfo(const QString& lnkPath);
+    static QPair<QString, QString> parseInternetShortcut(const QString& urlPath);
 
     // C++17 inline
     inline static const QString APPS_FOLDER = "shell:AppsFolder\\";

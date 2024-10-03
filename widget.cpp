@@ -33,7 +33,7 @@ Widget::Widget(QWidget* parent)
     setWindowIcon(QIcon(":/images/ICON.ico")); //若采用.rc文件设置图标 则无需此行，否则App无图标，导致QMessageBox::about找不到图标
     setWindowFlags(Qt::FramelessWindowHint);
     QtWin::taskbarDeleteTab(this); //删除任务栏图标
-    setWindowOpacity(0.8);
+    setWindowOpacity(0.9);
     setFocusPolicy(Qt::StrongFocus); //有焦点才能SwitchToThisWindow
     qApp->setQuitOnLastWindowClosed(false);
     //setStyleSheet("QWidget#Widget{background-color:rgb(15,15,15);}");

@@ -740,3 +740,40 @@ QPair<QString, QString> Win::getShortcutInfo(const QString& lnkPath)
 
     return qMakePair(target, args);
 }
+
+// .url (Text File)
+// - return (url, icon)
+QPair<QString, QString> Win::parseInternetShortcut(const QString& urlPath)
+{
+    if (!urlPath.endsWith(".url")) {
+        qWarning() << "Not a .url file.";
+        return {};
+    }
+
+    QFile file(urlPath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Failed to open file:" << urlPath;
+        return {};  // 如果文件打不开，返回空结果
+    }
+
+    QTextStream stream(&file);
+    QString url;
+    QString iconPath;
+
+    // 遍历 .url 文件内容，提取 URL 和 IconFile
+    while (!stream.atEnd()) {
+        QString line = stream.readLine();
+        if (line.startsWith("URL=", Qt::CaseInsensitive)) {
+            url = line.mid(4);  // 提取 URL
+        }
+        if (line.startsWith("IconFile=", Qt::CaseInsensitive)) {
+            iconPath = line.mid(9);  // 提取图标路径
+        }
+    }
+    file.close();
+
+    if (url.isEmpty())
+        qWarning() << "No URL found in .url file." << urlPath;
+
+    return qMakePair(url, iconPath);
+}

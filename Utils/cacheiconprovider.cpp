@@ -11,10 +11,11 @@ CacheIconProvider::CacheIconProvider()
 QIcon CacheIconProvider::getUrlIcon(const QString& path)
 {
     QIcon icon;
+    static const QIcon WebIcon = QIcon(":/images/web.png");
     if (!path.isEmpty()) {
         QString scheme = QUrl(path).scheme();
         if (scheme.startsWith("http")) //特殊处理网址
-            icon = QIcon(":/images/web.png");
+            icon = WebIcon;
         else if (path.startsWith(Win::APPS_FOLDER)) { //特殊处理 shell:AppsFolder
             auto id = path.mid(QString(Win::APPS_FOLDER).length());
             if (id[1] == ':' && id[2] == '\\') // Normal
@@ -31,6 +32,9 @@ QIcon CacheIconProvider::getUrlIcon(const QString& path)
                 QString logoPath = uwpDir + '\\' + Win::getLogoPathFromAppxManifest(uwpDir + "\\AppxManifest.xml");
                 icon = Win::loadUWPLogo(logoPath);
             }
+        } else if (path.endsWith(".url")) {
+            auto [url, iconPath] = Win::parseInternetShortcut(path);
+            icon = iconPath.isEmpty() ? WebIcon : QIcon(iconPath);
         } else
             icon = QFileIconProvider::icon(QFileInfo(path));
     }

@@ -283,6 +283,18 @@ void Executor::updateAppList()
             }
             list.append({name, "", path, ""});
         }
+
+        std::sort(list.begin(), list.end(), [](const Command &a, const Command &b) {
+            bool aHasChinese = Util::hasChinese(a.code);
+            bool bHasChinese = Util::hasChinese(b.code);
+
+            if (aHasChinese != bHasChinese) // 不含汉字的放前面
+                return !aHasChinese;
+
+            // 如果都不包含或都包含汉字，按长度从短到长排序
+            return a.code.length() < b.code.length();
+        });
+
         emit appListChanged(list);
     });
 

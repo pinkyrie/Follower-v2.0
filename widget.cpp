@@ -268,8 +268,12 @@ void Widget::updateWindow()
             break;
         }
 
-        if (!Win::isForeWindow(Hwnd) && Win::isTopMost(Hwnd)) //若焦点转移则取消置顶
-            setAlwaysTop(false);
+        if (!Win::isForeWindow(Hwnd)) { //若焦点转移则取消置顶 & 最小化
+            if (Win::isTopMost(Hwnd))
+                setAlwaysTop(false);
+            if (!isMinimized() && isVisible())
+                minimize();
+        }
 
         isMove = moveWindow(qMin(2.0 * gap / timer_move->interval(), 4.0)); //STILL->MOVE的时候伸缩动画占用时间 会导致Gap太大 所以要限制
         if (!isMove && isUnderCursor())
@@ -567,6 +571,8 @@ void Widget::switchAudioOutputDevice(const AudioDevice& dev, bool toPre) //封�
 
 void Widget::minimize()
 {
+    if (isMinimized()) return;
+    qDebug() << "#minimize";
     setWindowState(Qt::WindowMinimized);
     setState(MOVE);
 }

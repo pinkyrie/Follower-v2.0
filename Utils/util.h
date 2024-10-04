@@ -12,7 +12,7 @@ private:
 public:
     // 判断是否可能是路径，例如'C:' 'C:\'
     static bool maybePath(const QString& str);
-    static bool containsChinese(const QString &str);
+    static bool hasChinese(const QString &str);
 };
 
 #endif // UTIL_H

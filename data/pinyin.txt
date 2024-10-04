@@ -6003,7 +6003,7 @@
 仡 ge,wu,yi
 仢 bo
 代 dai
-令 lian,ling
+令 ling
 以 si,yi
 仦 chao
 仧 chang
@@ -6674,7 +6674,7 @@
 冂 jiong
 冃 mao
 冄 ran
-内 na,nei,rui
+内 nei
 円 yuan
 冇 mao
 冈 gang
@@ -7138,7 +7138,7 @@
 卒 cu,cui,zu
 卓 zhuo
 協 xie
-单 chan,dan,shan
+单 dan,shan
 卖 mai
 南 na,nan
 単 dan
@@ -7149,7 +7149,7 @@
 卝 guan,kuang
 卞 bian,pan
 卟 bu,ji
-占 tie,zhan
+占 zhan
 卡 ka,qia
 卢 lu
 卣 you
@@ -7247,7 +7247,7 @@
 县 xian
 叀 hui,zhuan
 叁 san
-参 can,cen,shen
+参 can,shen
 參 can,cen,san,shen
 叄 can
 叅 can
@@ -20689,7 +20689,7 @@
 衉 ka
 衊 mie
 衋 xi
-行 hang,heng,xing
+行 hang,xing
 衍 yan
 衎 kan
 衏 yuan
@@ -24265,7 +24265,7 @@
 陁 tuo,yi,zhi
 陂 bei,bi,pi,po
 陃 bing
-附 bu,fu
+附 fu
 际 ji
 陆 liu,lu
 陇 long
@@ -24297,7 +24297,7 @@
 陡 dou
 院 yuan
 陣 zhen
-除 chu,shu,zhu
+除 chu
 陥 xian
 陦 dao
 陧 nie

@@ -150,9 +150,29 @@ QStringList toPinyin(const QString& str)
         }
     }
 
-    // qDebug() << "#toPinyin:" << str << pinyinList;
+    if (pinyinList.size() > 5)
+        qWarning() << "#tooMuchTonePinyin:" << str << pinyinList;
     pinyinCache[str] = pinyinList;
     return pinyinList;
+}
+
+// 判断中文和拼音是否匹配，包含多音字枚举
+bool isPinyinMatch(const QString& dst, const QString& str)
+{
+    if (Util::hasChinese(str)) {
+        qWarning() << "#PinyinMatch: str contains Chinese";
+        return false;
+    }
+    if (!Util::hasChinese(dst)) {
+        qWarning() << "#PinyinMatch: dst doesn't contain Chinese";
+        return false;
+    }
+
+    auto dst_pinyins = toPinyin(dst);
+    for (const auto& pinyin: dst_pinyins)
+        if (pinyin.contains(str, Qt::CaseInsensitive))
+            return true;
+    return false;
 }
 
 // TODO: 加入对描述信息的匹配，以及打分排序
@@ -164,7 +184,7 @@ bool Executor::isMatch(const QString& dst, const QString& str, Qt::CaseSensitivi
     if (dst.compare(str, cs) == 0) return true; //完全匹配
     //if ((str.at(0) == '#' && dst.at(0) != '#') || (str.at(0) != '#' && dst.at(0) == '#')) return false; //加入匹配size 符号类别二次匹配 getsymbol!!!!!!!!!!!!!!!!!!!
     bool extra = str.endsWith(' '); //(如："qt "->"qt"：false 以保证"qt code"快捷匹配)
-    static const QRegExp reg("\\W+"); //匹配至少一个[非字母数字]
+    static const QRegExp reg("\\W+"); //匹配至少一个[非字母数字], QRegularExpression会把中文视为\W，但是QRegExp不会
     QStringList dstList = dst.simplified().split(reg, Qt::SkipEmptyParts);
     QStringList strList = str.simplified().split(reg, Qt::SkipEmptyParts);
 
@@ -174,19 +194,19 @@ bool Executor::isMatch(const QString& dst, const QString& str, Qt::CaseSensitivi
     if (strList.empty()) return false;
     if (dstList.size() < strList.size() + extra) return false; //' '顶一个size
 
-    if (Util::containsChinese(dst) && !Util::containsChinese(str)) {
-        auto dst_pinyins = toPinyin(dst);
-        for (const auto& pinyin: dst_pinyins)
-            if (pinyin.contains(str, Qt::CaseInsensitive))
-                return true;
-    }
-
     for (const QString& _str : qAsConst(strList)) { //存在多次匹配同一个单词问题(不过问题不大)
         bool flag = false;
         for (const QString& _dst : qAsConst(dstList)) {
-            if (_dst.indexOf(_str, 0, cs) == 0) {
-                flag = true;
-                break;
+            if (Util::hasChinese(_dst) && !Util::hasChinese(_str)) {
+                if (isPinyinMatch(_dst, _str)) {
+                    flag = true;
+                    break;
+                }
+            } else {
+                if (_dst.indexOf(_str, 0, cs) == 0) {
+                    flag = true;
+                    break;
+                }
             }
         }
         if (!flag) return false;

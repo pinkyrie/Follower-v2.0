@@ -76,7 +76,7 @@ private:
     QLabel* label = nullptr;
     CMDListWidget* lw = nullptr;
     //QFileIconProvider iconPro;
-    CacheIconProvider iconPro;
+    CacheIconProvider& iconPro = CacheIconProvider::instance();
     QCompleter* comp = nullptr;
     Request request;
     //QClipboard* clipboard;

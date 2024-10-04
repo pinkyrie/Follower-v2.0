@@ -10,6 +10,7 @@
 #include <QtConcurrent>
 #include "Utils/util.h"
 #include <Utils/WinUtility.h>
+#include <Utils/cacheiconprovider.h>
 
 Executor::Executor(QObject* parent)
     : QObject(parent)
@@ -281,6 +282,7 @@ void Executor::updateAppList()
                     continue;
                 }
             }
+            CacheIconProvider::instance().addCache(path); // 缓存图标
             list.append({name, "", path, ""});
         }
 

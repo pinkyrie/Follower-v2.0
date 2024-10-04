@@ -8,6 +8,12 @@ CacheIconProvider::CacheIconProvider()
 {
 }
 
+CacheIconProvider& CacheIconProvider::instance()
+{
+    static CacheIconProvider instance; // singleton
+    return instance;
+}
+
 QIcon CacheIconProvider::getUrlIcon(const QString& path)
 {
     QIcon icon;
@@ -55,10 +61,15 @@ void CacheIconProvider::addCache(const QString& path)
 
 QIcon CacheIconProvider::icon(const QString& path) //优先从缓存中读取
 {
+    QElapsedTimer t;
+    t.start();
     QIcon icon = iconCache.value(path);
     if (icon.isNull() && path != "") {
         iconCache[path] = icon = getUrlIcon(path);
         // qDebug() << "Not Hit IconCache:" << path;
     }
+    auto ms = t.elapsed();
+    if (ms >= 2)
+        qWarning() << "Icon load too slow:" << ms << "ms" << path;
     return icon;
 }

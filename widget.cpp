@@ -283,7 +283,7 @@ void Widget::updateWindow()
         if (isUnderCursor() && (KeyState::isDowning(VK_LBUTTON) || KeyState::isPress(VK_SPACE))) {
             setState(INPUT, 3);
             break;
-        } else if (KeyState::isRelease(VK_RBUTTON) || KeyState::isRelease(VK_ESCAPE) || KeyState::isRelease(VK_BACK)) {
+        } else if (KeyState::isRelease(VK_RBUTTON, 500) || KeyState::isRelease(VK_ESCAPE) || KeyState::isRelease(VK_BACK)) {
             //hide(); //setWindowState(Qt::WindowMinimized);
             minimize();
             break;
@@ -298,7 +298,7 @@ void Widget::updateWindow()
         if (((isGetMouseButton()) && !isUnderCursor()) || isTeleportKey()) {
             teleportKeyDown = false;
             setState(MOVE, 2);
-        } else if ((KeyState::isRelease(VK_RBUTTON) && isUnderCursor()) || KeyState::isRelease(VK_ESCAPE) || (lineEdit->text().isEmpty() && KeyState::isDowning(VK_CONTROL) && KeyState::isRelease(VK_BACK))) {
+        } else if ((isUnderCursor() && KeyState::isRelease(VK_RBUTTON)) || KeyState::isRelease(VK_ESCAPE) || (lineEdit->text().isEmpty() && KeyState::isDowning(VK_CONTROL) && KeyState::isRelease(VK_BACK))) {
             setState(STILL, 2); //右键||ESC||Ctrl+BackSpace&空文本
         }
         break;

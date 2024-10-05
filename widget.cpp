@@ -248,7 +248,7 @@ void Widget::updateWindow()
     bool isMove;
     bool isTeleport;
     KeyState::clearLock(); //保证检测一次
-    switch (state) {
+    switch (state) {  // TODO: 最好还是统一注册并检测所有需要的按键，否则按键不会被及时更新
     case MOVE:
         isTeleport = false;
         // 1. 500ms内释放中键，防止用户意图为在浏览器内长按触发滚动；2. 光标形状不为HAND时触发，防止意图为后台打开链接（浏览器）

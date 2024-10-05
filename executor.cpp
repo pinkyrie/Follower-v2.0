@@ -63,7 +63,7 @@ Executor::Executor(QObject* parent)
         QTextStream in(&file);
         in.setCodec("UTF-8"); //明确设置为 UTF-8 编码, 默认貌似不对
         while (!in.atEnd()) {
-            QString line = in.readLine();
+            QString line = in.readLine().simplified();
             if (line.size() < 3) continue;
             pinyinMap[line.at(0)] = line.mid(2).split(','); // 多音字
         }

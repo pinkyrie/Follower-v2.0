@@ -53,7 +53,7 @@ public:
     static QString getKnownFolderPath(int csidl);
     static QPair<QString, QString> getShortcutInfo(const QString& lnkPath);
     static QPair<QString, QString> parseInternetShortcut(const QString& urlPath);
-    static QIcon getFileIcon(QString filePath);
+    static QIcon getFileIcon(QString filePath, UINT sizeHint = SHGFI_SMALLICON);
 
     // C++17 inline
     inline static const QString APPS_FOLDER = "shell:AppsFolder\\";

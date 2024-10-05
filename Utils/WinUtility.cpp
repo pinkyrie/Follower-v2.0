@@ -580,7 +580,7 @@ QString getPropertyByPKString(IPropertyStore* store, const QString& property)
 // 从AppsFolder过滤获取UWP列表
 QList<QPair<QString, QString>> Win::getUWPList()
 {
-    CoInitialize(nullptr);
+    auto co_init = CoInitialize(NULL);
 
     IShellItem* psi = nullptr;
     // PowerToys没有采用这种方法，应该是直接遍历StartMenu文件夹 & 枚举UWP（Get-StartApps、or WinRT API ？）
@@ -648,7 +648,8 @@ QList<QPair<QString, QString>> Win::getUWPList()
         psi->Release();
     }
 
-    CoUninitialize();
+    if (SUCCEEDED(co_init))
+        CoUninitialize();
 
     return appList;
 }
@@ -714,8 +715,8 @@ QPair<QString, QString> Win::getShortcutInfo(const QString& lnkPath)
 
     QString target, args;
 
-    hr = CoInitialize(NULL);
-    if (SUCCEEDED(hr)) {
+    auto co_init = CoInitialize(NULL);
+    if (SUCCEEDED(co_init)) {
         hr = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLink, (LPVOID*)&psl);
         if (SUCCEEDED(hr)) {
             hr = psl->QueryInterface(IID_IPersistFile, (void**)&ppf);
@@ -736,7 +737,8 @@ QPair<QString, QString> Win::getShortcutInfo(const QString& lnkPath)
             }
             psl->Release();
         }
-        CoUninitialize();
+        if (SUCCEEDED(co_init))
+            CoUninitialize();
     }
 
     return qMakePair(target, args);
@@ -783,7 +785,8 @@ QPair<QString, QString> Win::parseInternetShortcut(const QString& urlPath)
 QIcon Win::getFileIcon(QString filePath, UINT sizeHint) {
     filePath = QDir::toNativeSeparators(filePath); // IMPORTANT: 否则会找不到文件
 
-    CoInitialize(NULL); // important for SHGetFileInfo，否则失败
+    // S_FALSE，说明本线程已经初始化过
+    auto co_init = CoInitialize(NULL); // important for SHGetFileInfo，否则失败
     SHFILEINFO sfi;
     memset(&sfi, 0, sizeof(SHFILEINFO));
 
@@ -792,7 +795,8 @@ QIcon Win::getFileIcon(QString filePath, UINT sizeHint) {
         icon = QtWin::fromHICON(sfi.hIcon);
         DestroyIcon(sfi.hIcon);
     }
-    CoUninitialize();
+    if (SUCCEEDED(co_init)) // 每次成功调用 CoInitialize 或 CoInitializeEx（包括返回S_FALSE）都必须通过对 CoUninitialize 的相应调用来平衡
+        CoUninitialize(); // 频繁调用会耗时（大概0.05ms）
 
     return icon;
 }

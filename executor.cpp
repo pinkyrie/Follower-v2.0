@@ -255,7 +255,8 @@ bool Executor::isExistPath(const QString& str)
 
 void Executor::updateAppList()
 {
-    QtConcurrent::run([=](){
+    QtConcurrent::run([this](){
+        ComInitializer COM; // RAII
         static QSet<QString> lastLaunchCmdSet;
         QSet<QString> launchCmdSet;
         for (const Command& cmd : qAsConst(cmdList))

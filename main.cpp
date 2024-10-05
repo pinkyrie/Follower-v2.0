@@ -18,6 +18,7 @@ int main(int argc, char* argv[])
     LogFileHandler::startFileLogging();
     SystemAPI sysAPI; //用以初始化sys全局指针,like qApp
     init();
+    ComInitializer COM;
     Widget w;
     w.show();
 

@@ -4,6 +4,7 @@
 #include <QtConcurrent>
 #include <QTime>
 #include <Utils/WinUtility.h>
+#include <Utils/WinUtility.h>
 #include <Utils/cacheiconprovider.h>
 
 CMDListWidget::CMDListWidget(QWidget* parent)
@@ -55,6 +56,7 @@ void CMDListWidget::addIconItems(const IconStrList& list) //貌似加载不同�
     // QTimer::singleShot(0, this, [=]() { //进入事件队列 在首次渲染list完成后再add Icon
         QtConcurrent::run([this]() { // 或者可以每一个item都开一个线程
             //qApp->processEvents();
+            ComInitializer COM; //每个线程都要单独初始化COM
             QTime t;
             int rows;
             {

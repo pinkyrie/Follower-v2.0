@@ -16,6 +16,7 @@
 #include <ShlObj.h>
 #include <propvarutil.h>
 #include <QDirIterator>
+#include <QtWin>
 
 void Win::setAlwaysTop(HWND hwnd, bool isTop)
 {
@@ -776,4 +777,22 @@ QPair<QString, QString> Win::parseInternetShortcut(const QString& urlPath)
         qWarning() << "No URL found in .url file." << urlPath;
 
     return qMakePair(url, iconPath);
+}
+
+// QFileIconProvider::icon()只能在主线程调用，不能后台缓存，非常坑
+QIcon Win::getFileIcon(QString filePath) {
+    filePath = QDir::toNativeSeparators(filePath); // IMPORTANT: 否则会找不到文件
+
+    CoInitialize(NULL); // important for SHGetFileInfo，否则失败
+    SHFILEINFO sfi;
+    memset(&sfi, 0, sizeof(SHFILEINFO));
+
+    QIcon icon;
+    if (SHGetFileInfo(filePath.toStdWString().c_str(), NULL, &sfi, sizeof(SHFILEINFO), SHGFI_ICON | SHGFI_SMALLICON | SHGFI_ADDOVERLAYS)) {
+        icon = QtWin::fromHICON(sfi.hIcon);
+        DestroyIcon(sfi.hIcon);
+    }
+    CoUninitialize();
+
+    return icon;
 }

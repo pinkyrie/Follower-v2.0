@@ -41,7 +41,7 @@ CodeEditor::CodeEditor(int width, int height, QWidget* parent)
 
     auto cmdList = executor.getCMDList();
     for (const auto& cmd : qAsConst(cmdList))
-        iconPro.cachePixmap(cmd.path); //初始化缓存
+        iconPro.addCache(cmd.path); //初始化缓存
     qDebug() << "#cmdList icon cached.";
 
     executor.updateAppList(); //初始化AppList
@@ -61,7 +61,7 @@ void CodeEditor::showEvent(QShowEvent*)
 {
     // 优化：仅在显示时才更新AppsFolder（后台多线程）
     executor.updateAppList();
-    this->setStyleSheet(BasicQss + (executor.isCachingIcon ? "QLineEdit{ border: 2px solid red }" : ""));
+    // this->setStyleSheet(BasicQss + (executor.isCachingIcon ? "QLineEdit{ border: 2px solid red }" : ""));
 }
 
 void CodeEditor::focusInEvent(QFocusEvent* event)
@@ -213,7 +213,8 @@ void CodeEditor::textEdit(const QString& text) //不包括setText clear等代码
                     IconStrList itemList;
                     for (const auto& p : qAsConst(list)) {
                         const QString& path = p.second;
-                        itemList << qMakePair(iconPro.icon(path), p.first);
+                        // itemList << qMakePair(iconPro.icon(path), p.first);
+                        itemList << qMakePair(path, p.first);
                     }
                     showList(itemList);
                 }

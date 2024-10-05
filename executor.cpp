@@ -35,29 +35,6 @@ Executor::Executor(QObject* parent)
     connect(this, &Executor::appListChanged, this, [=](QList<Command> list) { // 信号与槽，线程安全，无需加锁
         appList = list;
         qDebug() << "#Updated AppList";
-
-        static QTimer* timer = [this]() -> QTimer* { // timer中缓存，减轻对UI线程的压力 (vs qApp->processEvent())
-            QTimer* timer = new QTimer(this);
-            timer->setInterval(10);
-            timer->callOnTimeout([this, timer](){
-                static int i = 0;
-                if (i == 0) this->isCachingIcon = true;
-                if (!Util::hasVisibleWidget()) { // 仅在不活动时缓存
-                    if (i >= appList.size()) {
-                        qDebug() << "#All Apps' icon cached";
-                        sys->sysTray->showMessage("Cache", "Apps' icon cached");
-                        timer->stop();
-                        i = 0;
-                        this->isCachingIcon = false;
-                    } else {
-                        CacheIconProvider::instance().cachePixmap(appList[i++].path); // 缓存图标 (必须在GUI线程)
-                    }
-                }
-            });
-            return timer;
-        }();
-        timer->stop();
-        timer->start();
     });
 
     if (QFile::exists(runTimesDataPath)) {

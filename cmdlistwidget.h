@@ -9,7 +9,7 @@ class CMDListWidget : public QListWidget
 {
     Q_OBJECT
 public:
-    using IconStrList = QList<QPair<QIcon, QString>>;
+    using IconStrList = QList<QPair<QString, QString>>; // iconPath, text
 
     CMDListWidget(QWidget* parent = nullptr);
     void addIconItems(const IconStrList& list);
@@ -24,7 +24,7 @@ private:
 
 signals:
     void itemActivedEx(QListWidgetItem* item); //双击或回车
-    // void iconReady(QListWidgetItem* item, int index, QIcon icon); //icon加载完成
+    void iconReady(QListWidgetItem* item, int index, QIcon icon); //icon加载完成
 
     // QWidget interface
 protected:

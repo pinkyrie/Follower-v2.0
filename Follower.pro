@@ -117,7 +117,7 @@ msvc {
 
 # 会自动在build目录下生成.rc文件并链接
 # 版本
-VERSION = 2.16.4
+VERSION = 2.16.5
 # 公司名称
 QMAKE_TARGET_COMPANY = "MrBeanC"
 # 文件说明

@@ -1,6 +1,8 @@
 #include "util.h"
 
+#include <QApplication>
 #include <QCache>
+#include <QWidget>
 
 bool Util::maybePath(const QString& str)
 {
@@ -23,4 +25,15 @@ bool Util::hasChinese(const QString &str) {
 
     cache.insert(str, new bool(res));
     return res;
+}
+
+bool Util::hasVisibleWidget()
+{
+    auto topWidgets = QApplication::topLevelWidgets();
+    for (QWidget *widget : topWidgets) {
+        if (widget->isVisible() && !widget->isMinimized()) {
+            return true;
+        }
+    }
+    return false;
 }

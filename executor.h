@@ -93,6 +93,8 @@ private:
     QString echoText;
     QMap<QString, int> runTimesMap;
 
+    bool isCachingIcon = false;
+
     //CmdEditor* cmdEditor = nullptr;
     //NoteEditor* noteEditor = nullptr;
 

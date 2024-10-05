@@ -54,9 +54,23 @@ QIcon CacheIconProvider::getUrlIcon(const QString& path)
     return icon;
 }
 
-void CacheIconProvider::addCache(const QString& path)
+// cache QIcon
+QIcon CacheIconProvider::addCache(const QString& path)
 {
-    iconCache[path] = getUrlIcon(path);
+    if (auto icon = iconCache.value(path); !icon.isNull())
+        return icon;
+
+    auto icon = getUrlIcon(path);
+    iconCache[path] = icon;
+    return icon;
+}
+
+// cache QIcon & load QPixmap forcely
+// only in main thread!
+void CacheIconProvider::cachePixmap(const QString& path, const QSize& size)
+{
+    auto icon = addCache(path);
+    icon.pixmap(size); //强制缓存 （图标在这一步才真正读取），QPixmapCache必须在主线程运行，否则容易卡死
 }
 
 QIcon CacheIconProvider::icon(const QString& path) //优先从缓存中读取
@@ -66,7 +80,7 @@ QIcon CacheIconProvider::icon(const QString& path) //优先从缓存中读取
     QIcon icon = iconCache.value(path);
     if (icon.isNull() && path != "") {
         iconCache[path] = icon = getUrlIcon(path);
-        // qDebug() << "Not Hit IconCache:" << path;
+        qDebug() << "Not Hit IconCache:" << path;
     }
     auto ms = t.elapsed();
     if (ms >= 2)

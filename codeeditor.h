@@ -90,6 +90,7 @@ private:
     PastCodeList pastCodeList { 10 }; //code历史记录//不能用()存在歧义(函数声明or变量声明)
 
     QAction* act_admin = nullptr;
+    const QString BasicQss{ "QLineEdit{background-color:rgb(15,15,15);color:rgb(225,225,225);font-family:Consolas;font-size:14pt}" };
 
     // QWidget interface
 protected:

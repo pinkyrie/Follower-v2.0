@@ -8,7 +8,8 @@ class CacheIconProvider : public QFileIconProvider { //非QObject子类不能用
 public:
     static CacheIconProvider& instance();
     QIcon getUrlIcon(const QString& path);
-    void addCache(const QString& path);
+    QIcon addCache(const QString& path);
+    void cachePixmap(const QString& path, const QSize& size = QSize(16, 16));
     QIcon icon(const QString& path); //cacheIcon
 
 private:

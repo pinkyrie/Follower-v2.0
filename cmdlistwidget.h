@@ -24,6 +24,7 @@ private:
 
 signals:
     void itemActivedEx(QListWidgetItem* item); //双击或回车
+    // void iconReady(QListWidgetItem* item, int index, QIcon icon); //icon加载完成
 
     // QWidget interface
 protected:

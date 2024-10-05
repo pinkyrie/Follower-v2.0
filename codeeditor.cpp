@@ -16,7 +16,7 @@ CodeEditor::CodeEditor(int width, int height, QWidget* parent)
     setContextMenuPolicy(Qt::NoContextMenu);
     setMaxLength(TextLimit); //设置长度限制
 
-    setStyleSheet("QLineEdit{background-color:rgb(15,15,15);color:rgb(225,225,225);font-family:Consolas;font-size:14pt}");
+    setStyleSheet(BasicQss);
 
     label->setStyleSheet("QLabel{background-color:rgb(15,15,15);color:rgb(200,200,200);font-family:Consolas;font-size:9pt;}");
     label->hide();
@@ -41,7 +41,8 @@ CodeEditor::CodeEditor(int width, int height, QWidget* parent)
 
     auto cmdList = executor.getCMDList();
     for (const auto& cmd : qAsConst(cmdList))
-        iconPro.addCache(cmd.path); //初始化缓存
+        iconPro.cachePixmap(cmd.path); //初始化缓存
+    qDebug() << "#cmdList icon cached.";
 
     executor.updateAppList(); //初始化AppList
 }
@@ -60,6 +61,7 @@ void CodeEditor::showEvent(QShowEvent*)
 {
     // 优化：仅在显示时才更新AppsFolder（后台多线程）
     executor.updateAppList();
+    this->setStyleSheet(BasicQss + (executor.isCachingIcon ? "QLineEdit{ border: 2px solid red }" : ""));
 }
 
 void CodeEditor::focusInEvent(QFocusEvent* event)

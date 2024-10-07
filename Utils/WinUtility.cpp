@@ -654,6 +654,23 @@ QList<QPair<QString, QString>> Win::getUWPList()
     return appList;
 }
 
+QString Win::getLocalizedFileName(const QString &filePath)
+{
+    // QHash查找性能 > QMap (红黑树)
+    static QHash<QString, QString> cache; // 这里用QCache并不好，由于是顺序扫描，缓存命中率低，很快会到达maxCost导致清理
+    if (QString val = cache.value(filePath); !val.isEmpty()) {
+        return val;
+    }
+
+    SHFILEINFOW info;
+    if (SHGetFileInfo(filePath.toStdWString().c_str(), 0, &info, sizeof(info), SHGFI_DISPLAYNAME)) {
+        auto name = QString::fromWCharArray(info.szDisplayName);
+        cache.insert(filePath, name);
+        return name;
+    }
+    return QString();
+}
+
 // name path args
 QList<std::tuple<QString, QString>> Win::getAppList()
 {
@@ -664,8 +681,17 @@ QList<std::tuple<QString, QString>> Win::getAppList()
         QList<QPair<QString, QString>> apps;
         // QDir::System: on Windows, .lnk files are included, 不加的话某些.lnk扫不出来，例如桌面上的DeepL
         QDirIterator it(path, QStringList() << "*.lnk" << "*.url", QDir::System | QDir::Files | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
-        while (it.hasNext())
-            apps << qMakePair(it.fileInfo().completeBaseName(), QDir::toNativeSeparators(it.next()));
+        while (it.hasNext()) {
+            it.next();
+            auto name = it.fileInfo().completeBaseName();
+            auto path = QDir::toNativeSeparators(it.filePath());
+            auto localName = getLocalizedFileName(path);
+            if (name.isEmpty()) continue;
+            if (name != localName && !localName.isEmpty()) {
+                name = localName; // TODO: 应该把fileName 和 localName都加入匹配！（还有描述）
+            }
+            apps << qMakePair(name, path);
+        }
         return apps;
     };
 

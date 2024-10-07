@@ -11355,7 +11355,7 @@
 揌 cai,sai
 揍 cou,zou
 揎 xuan
-描 mao,miao
+描 miao
 提 ti
 揑 nie
 插 cha,zha
@@ -15057,7 +15057,7 @@
 牄 qiang
 牅 yong
 牆 qiang
-片 pan,pian
+片 pian
 版 ban
 牉 pan
 牊 chao

@@ -79,6 +79,7 @@ public:
     static QString GUID2Path(const QString& guid);
     static QString getUWPInstallDirByAUMID(const QString& AUMID);
     static QList<QPair<QString, QString>> getUWPList(void);
+    static QString getLocalizedFileName(const QString &filePath);
     static QList<std::tuple<QString, QString>> getAppList(void);
     static QString getKnownFolderPath(int csidl);
     static QPair<QString, QString> getShortcutInfo(const QString& lnkPath);
